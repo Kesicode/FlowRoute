@@ -182,7 +182,8 @@ function JourneyContent() {
           budget: budgetParam,
           preferences: parsedPrefs,
           safetyMode,
-          isOffline: offline
+          isOffline: offline,
+          language
         });
         setAiPlan(plan);
 
@@ -224,10 +225,12 @@ function JourneyContent() {
 
         // 8. Assemble dynamic Routes suggestions list
         const routeMinutes = Math.round(routeDur / 60);
+        const tRoute = (key: any) => t(key, language);
+
         const metroRoute: JourneyRoute = {
           id: "route-metro-dynamic",
-          name: "Express Rail Metro",
-          tag: "Fastest Choice",
+          name: tRoute("expressMetro"),
+          tag: tRoute("fastestChoice"),
           tagColor: "cyan",
           totalTime: routeMinutes,
           walkingTime: Math.round(routeMinutes * 0.2),
@@ -239,9 +242,9 @@ function JourneyContent() {
           segments: [
             {
               mode: "walk",
-              label: "Walk to Transit Gate",
+              label: tRoute("walkToGate"),
               from: originLoc.name,
-              to: "Metro Terminal Platform",
+              to: tRoute("metroTerminal"),
               duration: Math.round(routeMinutes * 0.1),
               distance: Math.round(routeDist * 0.05),
               fare: 0,
@@ -249,9 +252,9 @@ function JourneyContent() {
             },
             {
               mode: "metro",
-              label: "Kochi Metro Line 1",
-              from: "Metro Terminal Platform",
-              to: "Destination Hub Gate",
+              label: tRoute("kochiMetroLine"),
+              from: tRoute("metroTerminal"),
+              to: tRoute("destHubGate"),
               duration: Math.round(routeMinutes * 0.8),
               distance: Math.round(routeDist * 0.9),
               fare: travelCost,
@@ -261,8 +264,8 @@ function JourneyContent() {
             },
             {
               mode: "walk",
-              label: `Walk to ${destLoc.name}`,
-              from: "Destination Hub Gate",
+              label: `${tRoute("walkToDest")} ${destLoc.name}`,
+              from: tRoute("destHubGate"),
               to: destLoc.name,
               duration: Math.round(routeMinutes * 0.1),
               distance: Math.round(routeDist * 0.05),
@@ -274,8 +277,8 @@ function JourneyContent() {
 
         const ecoRoute: JourneyRoute = {
           id: "route-eco-dynamic",
-          name: "Greener Bus Route",
-          tag: "Eco Friendly",
+          name: tRoute("greenerBus"),
+          tag: tRoute("ecoFriendly"),
           tagColor: "green",
           totalTime: Math.round(routeMinutes * 1.35),
           walkingTime: Math.round(routeMinutes * 0.35),
@@ -287,7 +290,7 @@ function JourneyContent() {
           segments: [
             {
               mode: "bus",
-              label: "Electric Public Bus 24A",
+              label: tRoute("electricBus"),
               from: originLoc.name,
               to: destLoc.name,
               duration: Math.round(routeMinutes * 1.25),
@@ -301,8 +304,8 @@ function JourneyContent() {
 
         const cabRoute: JourneyRoute = {
           id: "route-comfort-dynamic",
-          name: "Direct Premium Taxi",
-          tag: safetyMode ? "Safe Corridor" : "Comfort Choice",
+          name: tRoute("directTaxi"),
+          tag: safetyMode ? tRoute("safeCorridor") : tRoute("comfortChoice"),
           tagColor: "purple",
           totalTime: Math.round(routeMinutes * 0.85),
           walkingTime: 2,
@@ -314,7 +317,7 @@ function JourneyContent() {
           segments: [
             {
               mode: "taxi",
-              label: "Secured Air-Conditioned Cab",
+              label: tRoute("securedCab"),
               from: originLoc.name,
               to: destLoc.name,
               duration: Math.round(routeMinutes * 0.85),
@@ -473,9 +476,9 @@ function JourneyContent() {
             {/* Quick stats */}
             <div className="flex gap-2 mt-3">
               {[
-                { label: "Est. time", value: `${Math.round(duration/60)} min`, color: "text-brand-cyan" },
-                { label: "Best fare", value: `₹${routes[0]?.totalFare || 250}`, color: "text-emerald-400" },
-                { label: "Temp", value: `${weather?.current?.temp || 28}°C`, color: "text-brand-blue" },
+                { label: t("estTime", language), value: `${Math.round(duration/60)} ${t("minLabel", language)}`, color: "text-brand-cyan" },
+                { label: t("bestFare", language), value: `₹${routes[0]?.totalFare || 250}`, color: "text-emerald-400" },
+                { label: t("tempLabel", language), value: `${weather?.current?.temp || 28}°C`, color: "text-brand-blue" },
               ].map((s) => (
                 <div key={s.label} className="flex-1 py-2 px-1 glass-card rounded-xl border border-white/5 text-center">
                   <div className={`font-bold text-sm leading-none ${s.color}`}>{s.value}</div>

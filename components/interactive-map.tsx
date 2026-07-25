@@ -141,11 +141,28 @@ export default function InteractiveMap({
 }: InteractiveMapProps) {
 
   const [showHospitals,   setShowHospitals]   = useState(true);
-  const [showPolice,      setShowPolice]       = useState(true);
+  const [showPolice,      setShowPolice]       = useState(true); // theme-aware state
   const [showATMs,        setShowATMs]         = useState(true);
   const [showChargers,    setShowChargers]     = useState(true);
   const [showFood,        setShowFood]         = useState(true);
   const [showAttractions, setShowAttractions]  = useState(true);
+  const [isDarkMode,      setIsDarkMode]       = useState(true);
+
+  useEffect(() => {
+    const checkTheme = () => {
+      const isDark = document.documentElement.classList.contains("dark");
+      setIsDarkMode(isDark);
+    };
+    checkTheme();
+
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   const defaultCenter: [number, number] = [9.9312, 76.2673];
   const defaultZoom = 13;
@@ -235,12 +252,16 @@ export default function InteractiveMap({
         zoom={defaultZoom}
         zoomControl={false}
         className="w-full h-full"
-        style={{ background: "#05070a" }}
+        style={{ background: isDarkMode ? "#05070a" : "#f8fafc" }}
       >
-        {/* Dark CartoDB tile */}
+        {/* Theme-aware tile layer */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url={
+            isDarkMode
+              ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          }
           maxZoom={20}
         />
 
