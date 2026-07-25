@@ -412,22 +412,51 @@ input[type="range"].budget-slider::-moz-range-thumb {
   color: #1e293b !important;
 }
 
-/* Exempt solid colored text from being overridden to dark slate */
+/* Exempt solid colored text on dark backgrounds from being overridden to dark slate */
 :root:not(.dark) button.bg-red-600,
 :root:not(.dark) button.bg-red-600 *,
+:root:not(.dark) .bg-red-600,
 :root:not(.dark) .bg-red-600 *,
-:root:not(.dark) .bg-brand-cyan *,
-:root:not(.dark) .bg-brand-blue *,
 :root:not(.dark) .custom-div-icon *,
+:root:not(.dark) .bg-emerald-600,
 :root:not(.dark) .bg-emerald-600 *,
+:root:not(.dark) .bg-emerald-500,
 :root:not(.dark) .bg-emerald-500 *,
-:root:not(.dark) .bg-emerald-500/10 *,
-:root:not(.dark) .bg-emerald-500/15 *,
-:root:not(.dark) .bg-red-500/10 *,
-:root:not(.dark) .bg-red-500/15 *,
-:root:not(.dark) .bg-fuchsia-500/10 *,
-:root:not(.dark) .bg-fuchsia-500/15 * {
+:root:not(.dark) .bg-blue-600,
+:root:not(.dark) .bg-blue-600 *,
+:root:not(.dark) .bg-indigo-600,
+:root:not(.dark) .bg-indigo-600 *,
+:root:not(.dark) .bg-slate-900,
+:root:not(.dark) .bg-slate-900 *,
+:root:not(.dark) .bg-slate-950,
+:root:not(.dark) .bg-slate-950 *,
+:root:not(.dark) .bg-black,
+:root:not(.dark) .bg-black * {
   color: #ffffff !important;
+}
+
+/* Ensure bright brand elements have dark text for premium contrast */
+:root:not(.dark) .bg-brand-cyan,
+:root:not(.dark) .bg-brand-cyan *,
+:root:not(.dark) .bg-brand-blue,
+:root:not(.dark) .bg-brand-blue *,
+:root:not(.dark) .bg-primary,
+:root:not(.dark) .bg-primary *,
+:root:not(.dark) button.bg-brand-cyan,
+:root:not(.dark) button.bg-brand-cyan *,
+:root:not(.dark) button.bg-brand-blue,
+:root:not(.dark) button.bg-brand-blue * {
+  color: #0f172a !important;
+}
+
+/* Ensure text-transparent class is not overridden */
+:root:not(.dark) [class*="text-transparent"] {
+  color: transparent !important;
+}
+
+/* Dark logo gradient in Light Mode */
+:root:not(.dark) .bg-gradient-to-r.from-white {
+  background-image: linear-gradient(to right, #0f172a, #334155, #475569) !important;
 }
 
 :root:not(.dark) .bg-brand-cyan text-slate-950,

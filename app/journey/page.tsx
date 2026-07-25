@@ -169,7 +169,7 @@ function JourneyContent() {
         setWeather(resolvedWeather);
 
         // 4. Fetch amenities nearby using Overpass API
-        const pois = await fetchNearbyPlaces(destLoc.lat, destLoc.lng);
+        const pois = await fetchNearbyPlaces(destLoc.lat, destLoc.lng, 2000, routeCoords);
         setFoodStops(pois.foodStops);
         setEssentials(pois.essentials);
         setAttractions(pois.attractions);
