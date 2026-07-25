@@ -29,6 +29,10 @@
   --border: 217.2 32.6% 17.5%;
   --input: 217.2 32.6% 17.5%;
   --ring: 180 100% 50%;
+
+  /* Navbar height tokens */
+  --navbar-h: 72px;
+  --navbar-h-scrolled: 52px;
 }
 
 @theme {
@@ -69,26 +73,35 @@
   --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Custom scrollbar */
+/* ─── Custom scrollbar ───────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(5, 7, 10, 0.8);
+  background: rgba(5, 7, 10, 0.6);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+  background: rgba(0, 242, 254, 0.15);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 242, 254, 0.3);
 }
 
-/* Glassmorphism utilities */
+/* ─── Hide scrollbar utility ─────────────────────────────────────────────── */
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+/* ─── Glassmorphism utilities ────────────────────────────────────────────── */
 .glass-panel {
   background: rgba(13, 17, 23, 0.6);
   backdrop-filter: blur(12px);
@@ -118,6 +131,7 @@
   transform: translateY(-2px);
 }
 
+/* ─── Neon effects ───────────────────────────────────────────────────────── */
 .neon-text-cyan {
   text-shadow: 0 0 10px rgba(0, 242, 254, 0.5), 0 0 20px rgba(0, 242, 254, 0.2);
 }
@@ -130,6 +144,7 @@
   box-shadow: 0 0 15px rgba(79, 172, 254, 0.25), inset 0 0 15px rgba(79, 172, 254, 0.1);
 }
 
+/* ─── Base styles ────────────────────────────────────────────────────────── */
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
@@ -141,18 +156,78 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
 }
 
-/* Animated Polyline */
+/* ─── Animated Polyline ──────────────────────────────────────────────────── */
 .animated-polyline {
   stroke-dasharray: 12, 16;
   animation: route-dash-animation 30s linear infinite;
 }
 
 @keyframes route-dash-animation {
-  from {
-    stroke-dashoffset: 1000;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
+  from { stroke-dashoffset: 1000; }
+  to   { stroke-dashoffset: 0; }
 }
 
+/* ─── Gradient sweep animation (used in hero headline & AI button) ────────── */
+@keyframes gradient {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ─── Budget range slider — styled fill ──────────────────────────────────── */
+input[type="range"].budget-slider {
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    #00F2FE 0%,
+    #4FACFE var(--slider-pct, 50%),
+    rgba(255, 255, 255, 0.1) var(--slider-pct, 50%),
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"].budget-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #00F2FE;
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.7);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type="range"].budget-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 16px rgba(0, 242, 254, 0.9);
+}
+
+input[type="range"].budget-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: #00F2FE;
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.7);
+  cursor: pointer;
+}
+
+/* ─── Scroll snap helpers for horizontal tab bars ────────────────────────── */
+.snap-x-tabs {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.snap-x-tabs > * {
+  scroll-snap-align: start;
+}
+
+/* ─── Focus-visible ring for interactive cards ───────────────────────────── */
+.glass-card:focus-visible {
+  outline: 2px solid rgba(0, 242, 254, 0.6);
+  outline-offset: 2px;
+}

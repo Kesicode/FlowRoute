@@ -372,7 +372,7 @@ function JourneyContent() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-6 min-h-[70vh] bg-background">
+      <div className="flex-1 flex flex-col items-center justify-center gap-6 bg-background">
         <div className="relative">
           <div className="w-20 h-20 rounded-full border-2 border-brand-cyan/20 border-t-brand-cyan animate-spin" />
           <Sparkles className="absolute inset-0 m-auto w-8 h-8 text-brand-cyan animate-pulse" />
@@ -386,10 +386,10 @@ function JourneyContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col lg:flex-row h-[calc(100vh-64px)] relative overflow-hidden bg-background">
+    <div className="flex flex-1 flex-col lg:flex-row h-[calc(100vh-72px)] relative overflow-hidden bg-background">
       
       {/* Left Results Column */}
-      <aside className="w-full lg:w-[460px] bg-card border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col h-[55%] lg:h-full z-10">
+      <aside className="w-full lg:w-[420px] xl:w-[460px] bg-card border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col h-[60%] lg:h-full z-10">
         
         {/* Header */}
         <div className="p-5 border-b border-white/5 bg-black/25">
@@ -426,9 +426,9 @@ function JourneyContent() {
               { label: "Best fare", value: `₹${routes[0]?.totalFare || 250}`, color: "text-emerald-400" },
               { label: "Temp", value: `${weather?.current?.temp || 28}°C`, color: "text-brand-blue" },
             ].map((s) => (
-              <div key={s.label} className="flex-1 py-1.5 glass-card rounded-xl border border-white/5 text-center">
+              <div key={s.label} className="flex-1 py-2 glass-card rounded-xl border border-white/5 text-center">
                 <div className={`font-bold text-xs ${s.color}`}>{s.value}</div>
-                <div className="text-[8px] text-slate-500 uppercase tracking-wider">{s.label}</div>
+                <div className="text-[9px] text-slate-500 uppercase tracking-wider mt-0.5">{s.label}</div>
               </div>
             ))}
           </div>
@@ -443,7 +443,7 @@ function JourneyContent() {
         )}
 
         {/* Scrolling navigation tabs */}
-        <div className="flex overflow-x-auto p-3 gap-1.5 border-b border-white/5 no-scrollbar bg-black/10 shrink-0">
+        <div className="flex overflow-x-auto p-3 gap-1.5 border-b border-white/5 no-scrollbar snap-x-tabs bg-black/10 shrink-0">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -468,7 +468,7 @@ function JourneyContent() {
         </div>
 
         {/* Panel Content Area */}
-        <div className="flex-1 p-5 overflow-y-auto bg-black/5">
+        <div className="flex-1 p-4 overflow-y-auto bg-black/10">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -485,7 +485,7 @@ function JourneyContent() {
       </aside>
 
       {/* Right Interactive Map Frame */}
-      <section className="flex-grow h-[45%] lg:h-full relative z-0">
+      <section className="flex-grow h-[40%] lg:h-full relative z-0">
         <MapWrapper
           origin={origin}
           destination={destination}

@@ -19,10 +19,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark h-full">
-      <body className="min-h-screen bg-background text-foreground antialiased flex flex-col font-sans selection:bg-primary/20 selection:text-primary">
+      <body className="min-h-screen bg-background text-foreground antialiased flex flex-col font-sans overflow-x-hidden selection:bg-primary/20 selection:text-primary">
         <SettingsProvider>
           <Navbar />
-          <main className="flex-grow flex flex-col pt-16">
+          <main className="flex-grow flex flex-col pt-[72px]">
             {children}
           </main>
           <Footer />

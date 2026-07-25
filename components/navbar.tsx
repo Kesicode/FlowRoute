@@ -164,7 +164,7 @@ export default function Navbar() {
               onClick={() => setEmergencyMode(true)}
               className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-500 border border-red-500/20 hover:border-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.25)] hover:shadow-[0_0_20px_rgba(239,68,68,0.45)] transition-all duration-300 flex items-center gap-1.5 shrink-0"
             >
-              <ShieldAlert className="w-4 h-4 text-white animate-pulse" />
+              <ShieldAlert className={`w-4 h-4 text-white ${!isOnline ? 'animate-pulse' : ''}`} />
               <span>{t("emergencyBtn", language)}</span>
             </button>
 
@@ -213,7 +213,7 @@ export default function Navbar() {
       </div>
 
       {/* Mobile Drawer */}
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
@@ -221,7 +221,7 @@ export default function Navbar() {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden border-b border-white/5 bg-background/95 backdrop-blur-lg"
           >
-            <div className="px-4 pt-2 pb-6 space-y-2">
+            <div className="px-4 pt-2 pb-6 space-y-2 overflow-y-auto">
               {navLinks.map((link) => {
                 const isActive = pathname === link.href;
                 return (

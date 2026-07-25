@@ -126,7 +126,7 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
       <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
 
         {/* Page Header */}
@@ -145,7 +145,7 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Dynamic Aggregated Stats Grid */}
-        <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
           {stats.map((stat) => {
             // Localize labels dynamically
             const labelKeys: Record<string, string> = {
@@ -210,7 +210,7 @@ export default function DashboardPage() {
               <h2 className="font-display font-semibold text-white">Monthly Budget Comparison</h2>
               <span className="ml-auto text-xs text-slate-500">INR (₹)</span>
             </div>
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={200}>
               <BarChart data={mockBudgetChartData} barGap={4}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
@@ -232,7 +232,7 @@ export default function DashboardPage() {
               <h2 className="font-display font-semibold text-white">Monthly carbon (CO₂) Footprint</h2>
               <span className="ml-auto text-xs text-slate-500">kg</span>
             </div>
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={200}>
               <LineChart data={mockCarbonChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
@@ -273,7 +273,7 @@ export default function DashboardPage() {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="glass-card rounded-2xl p-4 border border-white/5 flex items-center gap-4 hover:border-white/10 transition-all group"
+                  className="glass-card rounded-2xl p-4 border border-white/5 flex items-center gap-3 hover:border-white/10 transition-all group"
                 >
                   <div className={`p-2.5 rounded-xl ${colorClass}`}>
                     <Icon className="w-4 h-4" />
@@ -307,7 +307,7 @@ export default function DashboardPage() {
               {t("favouriteDestinations", language)}
             </h2>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
             {mockFavouriteDestinations.map((dest, i) => (
               <motion.div
                 key={dest.id}
@@ -335,7 +335,7 @@ export default function DashboardPage() {
         {/* Carbon Savings Summary Banner */}
         <motion.div
           variants={itemVariants}
-          className="glass-card rounded-2xl p-6 border border-emerald-500/20 bg-gradient-to-r from-emerald-500/5 to-transparent flex flex-col sm:flex-row items-center gap-4"
+          className="glass-card rounded-2xl p-5 border border-emerald-500/20 bg-gradient-to-r from-emerald-500/5 to-transparent flex flex-col sm:flex-row items-center gap-4"
         >
           <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 shrink-0">
             <Leaf className="w-8 h-8 text-emerald-400" />

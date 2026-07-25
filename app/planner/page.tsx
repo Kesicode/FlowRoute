@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -67,17 +67,17 @@ export default function PlannerPage() {
   }, [transcript]);
 
   // ─── Geocoding debounce ─────────────────────────────────────────────────
-  let originTimer: ReturnType<typeof setTimeout>;
-  let destTimer: ReturnType<typeof setTimeout>;
+  const originTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const destTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const handleOriginChange = (val: string) => {
     setOriginQuery(val);
     setShowOriginPanel(true);
     if (val === "") { setOrigin(null); return; }
-    clearTimeout(originTimer);
+    clearTimeout(originTimerRef.current);
     if (val.length >= 3) {
       setOriginLoading(true);
-      originTimer = setTimeout(async () => {
+      originTimerRef.current = setTimeout(async () => {
         const res = await searchLocations(val);
         setOriginSuggestions(res);
         setOriginLoading(false);
@@ -89,10 +89,10 @@ export default function PlannerPage() {
     setDestQuery(val);
     setShowDestPanel(true);
     if (val === "") { setDestination(null); return; }
-    clearTimeout(destTimer);
+    clearTimeout(destTimerRef.current);
     if (val.length >= 3) {
       setDestLoading(true);
-      destTimer = setTimeout(async () => {
+      destTimerRef.current = setTimeout(async () => {
         const res = await searchLocations(val);
         setDestSuggestions(res);
         setDestLoading(false);
@@ -239,7 +239,7 @@ export default function PlannerPage() {
     <div className="flex flex-grow flex-col lg:flex-row h-[calc(100vh-64px)] relative overflow-hidden bg-background">
       
       {/* ─── Left Sidebar ──────────────────────────────────────────────── */}
-      <aside className="w-full lg:w-[450px] bg-card border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col h-[55%] lg:h-full z-10 overflow-y-auto">
+      <aside className="w-full lg:w-[450px] bg-card border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col min-h-[60%] max-h-[65%] lg:min-h-0 lg:max-h-full lg:h-full z-10 overflow-y-auto">
         
         {/* Header Toggle */}
         <div className="p-4 border-b border-white/5 bg-black/20 flex gap-2">
@@ -266,7 +266,7 @@ export default function PlannerPage() {
           </button>
         </div>
 
-        <div className="flex-1 p-5 space-y-5 overflow-y-auto">
+        <div className="flex-1 p-5 space-y-5 overflow-y-auto pb-6">
           <AnimatePresence mode="wait">
             {plannerMode === "manual" ? (
               <motion.div
@@ -411,17 +411,18 @@ export default function PlannerPage() {
                       step={500}
                       value={budget}
                       onChange={(e) => setBudget(Number(e.target.value))}
-                      className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand-cyan [&::-webkit-slider-thumb]:shadow-[0_0_8px_rgba(0,242,254,0.6)] [&::-webkit-slider-track]:rounded-full"
+                      className="budget-slider w-full cursor-pointer"
+                      style={{ '--slider-pct': `${((budget - 500) / (50000 - 500)) * 100}%` } as React.CSSProperties}
                     />
                   </div>
                 </div>
 
                 {/* Accessibility Options */}
                 <div>
-                  <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-2 flex items-center gap-1">
+                  <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
                     <Accessibility className="w-3.5 h-3.5 text-brand-cyan" />
                     {t("accessibilityProfile", language)}
-                  </label>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     {accessibilityOptions.map((opt) => {
                       const isSelected = selectedAccessibility.includes(opt.id);

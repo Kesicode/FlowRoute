@@ -122,7 +122,7 @@ export default function Home() {
     <div className="flex flex-col overflow-hidden">
 
       {/* ─── HERO ──────────────────────────────────────────────────────────── */}
-      <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Background glows */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/4 left-1/3 w-[600px] h-[600px] bg-brand-cyan/5 rounded-full blur-[120px]" />
@@ -254,17 +254,17 @@ export default function Home() {
       {/* ─── STATS BAR ────────────────────────────────────────────────────── */}
       <section className="border-y border-white/5 bg-white/[0.02] py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { value: "10+", label: "Travel Modes", icon: "🚌" },
               { value: "8", label: "Journey Sections", icon: "🗺️" },
               { value: "100%", label: "Hardcoded Demo", icon: "⚡" },
               { value: "Zero", label: "Backend Required", icon: "🔌" }
             ].map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-2xl mb-1">{stat.icon}</div>
+              <div key={stat.label} className="glass-card rounded-2xl border border-white/5 p-4 text-center">
+                <div className="text-3xl mb-2">{stat.icon}</div>
                 <div className="text-2xl font-bold text-white font-display">{stat.value}</div>
-                <div className="text-xs text-slate-400 mt-0.5">{stat.label}</div>
+                <div className="text-xs text-slate-400 mt-1 font-medium">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -329,8 +329,13 @@ export default function Home() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-            {/* Connecting line */}
-            <div className="hidden md:block absolute top-12 left-[calc(16.6%+40px)] right-[calc(16.6%+40px)] h-px bg-gradient-to-r from-brand-cyan/30 via-brand-blue/30 to-brand-cyan/30" />
+            {/* Connecting lines between steps */}
+            <div className="hidden md:absolute md:flex inset-0 items-start justify-center pointer-events-none" style={{ top: '40px' }}>
+              <div className="w-full flex items-center px-[calc(100%/6)]">
+                <div className="flex-1 h-px bg-gradient-to-r from-brand-cyan/40 to-brand-blue/40" />
+                <div className="flex-1 h-px bg-gradient-to-r from-brand-blue/40 to-brand-cyan/40" />
+              </div>
+            </div>
 
             {steps.map((step, i) => (
               <motion.div
@@ -378,7 +383,7 @@ export default function Home() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
           >
             {travelPreferences.map((pref, i) => (
               <motion.div
@@ -400,7 +405,7 @@ export default function Home() {
       </section>
 
       {/* ─── CTA BANNER ───────────────────────────────────────────────────── */}
-      <section className="py-24 relative overflow-hidden">
+      <section className="py-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-brand-cyan/10 via-transparent to-brand-blue/10 pointer-events-none" />
         <div className="absolute inset-0 border-y border-white/5 pointer-events-none" />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">

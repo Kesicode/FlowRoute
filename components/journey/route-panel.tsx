@@ -62,7 +62,7 @@ export function RoutePanel({ routes, onSelectSegment }: RoutePanelProps) {
           transition={{ delay: i * 0.08 }}
           className={`glass-card rounded-2xl p-5 border ${
             route.isRecommended
-              ? "border-brand-cyan/30 shadow-[0_0_24px_rgba(0,242,254,0.07)]"
+              ? "border-brand-cyan/30 shadow-[0_0_24px_rgba(0,242,254,0.14)]"
               : "border-white/5"
           }`}
         >
@@ -115,7 +115,7 @@ export function RoutePanel({ routes, onSelectSegment }: RoutePanelProps) {
                 key={j}
                 onMouseEnter={() => onSelectSegment?.(seg.coordinates)}
                 onMouseLeave={() => onSelectSegment?.(null)}
-                className="flex items-center gap-3 hover:bg-white/[0.04] p-2 rounded-xl transition-all cursor-pointer border border-transparent hover:border-white/5"
+                className="flex items-center gap-3 hover:bg-white/[0.06] p-2 rounded-xl transition-all cursor-pointer border border-transparent hover:border-white/5"
               >
                 <div className={`p-1.5 rounded-lg border ${modeColors[seg.mode]}`}>
                   <ModeIcon mode={seg.mode} />
@@ -135,7 +135,7 @@ export function RoutePanel({ routes, onSelectSegment }: RoutePanelProps) {
 
           {/* Score bar & dynamic Safety/Access metrics */}
           <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
-            <div className="flex justify-between items-center text-[10px]">
+              <div className="flex flex-wrap justify-between items-center gap-y-1 text-[10px]">
               <div className="flex items-center gap-4">
                 <span className="text-slate-500">
                   AI Fit: <strong className="text-brand-cyan">{route.overallScore}%</strong>
