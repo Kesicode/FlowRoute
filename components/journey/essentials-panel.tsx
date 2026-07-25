@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { mockJourneyPlan } from "@/lib/mockData";
-import type { EssentialType } from "@/types/journey";
+import type { EssentialType, Essential } from "@/types/journey";
 import { Hospital, Pill, Banknote, Fuel, Toilet } from "lucide-react";
 
 const essentialConfig: Record<EssentialType, { icon: React.ElementType; label: string; color: string; emoji: string }> = {
@@ -11,14 +10,19 @@ const essentialConfig: Record<EssentialType, { icon: React.ElementType; label: s
   pharmacy: { icon: Pill, label: "Pharmacy", color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20", emoji: "💊" },
   atm: { icon: Banknote, label: "ATM", color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20", emoji: "🏧" },
   restroom: { icon: Toilet, label: "Restroom", color: "text-blue-400 bg-blue-400/10 border-blue-400/20", emoji: "🚻" },
-  fuel: { icon: Fuel, label: "Fuel", color: "text-orange-400 bg-orange-400/10 border-orange-400/20", emoji: "⛽" },
+  fuel: { icon: Fuel, label: "Charger/EV", color: "text-orange-400 bg-orange-400/10 border-orange-400/20", emoji: "🔌" },
 };
 
-export function EssentialsPanel() {
-  const [activeFilter, setActiveFilter] = useState<EssentialType | "all">("all");
-  const { essentials } = mockJourneyPlan;
-  const filtered = activeFilter === "all" ? essentials : essentials.filter((e) => e.type === activeFilter);
+interface EssentialsPanelProps {
+  essentials: Essential[];
+}
 
+export function EssentialsPanel({ essentials }: EssentialsPanelProps) {
+  const [activeFilter, setActiveFilter] = useState<EssentialType | "all">("all");
+  
+  if (!essentials) return <p className="text-xs text-slate-500">No essentials markers loaded.</p>;
+
+  const filtered = activeFilter === "all" ? essentials : essentials.filter((e) => e.type === activeFilter);
   const filters: (EssentialType | "all")[] = ["all", "hospital", "pharmacy", "atm", "restroom", "fuel"];
 
   return (
@@ -42,7 +46,8 @@ export function EssentialsPanel() {
 
       <div className="space-y-3">
         {filtered.map((ess, i) => {
-          const config = essentialConfig[ess.type];
+          const config = essentialConfig[ess.type] || essentialConfig.hospital;
+          const Icon = config.icon;
           return (
             <motion.div
               key={ess.id}
@@ -52,7 +57,7 @@ export function EssentialsPanel() {
               className="glass-card rounded-2xl p-4 border border-white/5 flex items-center gap-4 hover:border-white/10 transition-all"
             >
               <div className={`p-3 rounded-xl border ${config.color}`}>
-                <config.icon className="w-5 h-5" />
+                <Icon className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-semibold text-white truncate">{ess.name}</h3>

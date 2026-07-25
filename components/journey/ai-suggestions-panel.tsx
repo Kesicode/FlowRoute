@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { mockJourneyPlan } from "@/lib/mockData";
+import type { AiSuggestion } from "@/types/journey";
 
 const severityStyles = {
   info: "border-brand-blue/30 bg-brand-blue/5",
@@ -15,8 +15,14 @@ const severityBadge = {
   tip: "text-brand-cyan bg-brand-cyan/10 border-brand-cyan/20",
 };
 
-export function AiSuggestionsPanel() {
-  const { aiSuggestions } = mockJourneyPlan;
+interface AiSuggestionsPanelProps {
+  aiSuggestions: AiSuggestion[];
+}
+
+export function AiSuggestionsPanel({ aiSuggestions }: AiSuggestionsPanelProps) {
+  if (!aiSuggestions || aiSuggestions.length === 0) {
+    return <p className="text-xs text-slate-500">No suggestions compiled by AI assistant.</p>;
+  }
 
   return (
     <div className="space-y-3">
@@ -29,13 +35,13 @@ export function AiSuggestionsPanel() {
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: i * 0.07 }}
-          className={`p-4 rounded-2xl border ${severityStyles[suggestion.severity]} transition-all duration-300 hover:scale-[1.01]`}
+          className={`p-4 rounded-2xl border ${severityStyles[suggestion.severity] || severityStyles.info} transition-all duration-300 hover:scale-[1.01]`}
         >
           <div className="flex items-start gap-3">
             <span className="text-2xl shrink-0">{suggestion.icon}</span>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1.5">
-                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${severityBadge[suggestion.severity]}`}>
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${severityBadge[suggestion.severity] || severityBadge.info}`}>
                   {suggestion.severity === "warning" ? "⚠ Warning" : suggestion.severity === "tip" ? "💡 Tip" : "ℹ Info"}
                 </span>
                 <span className="text-[9px] text-slate-600 capitalize">{suggestion.category}</span>

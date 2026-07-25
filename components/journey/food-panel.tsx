@@ -2,11 +2,8 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { mockJourneyPlan } from "@/lib/mockData";
 import { MapPin, Star } from "lucide-react";
 import type { FoodStop } from "@/types/journey";
-
-
 
 const typeEmojis: Record<FoodStop["type"], string> = {
   restaurant: "🍽️",
@@ -16,11 +13,16 @@ const typeEmojis: Record<FoodStop["type"], string> = {
   bar: "🍺",
 };
 
-export function FoodPanel() {
-  const [filter, setFilter] = useState<FoodStop["type"] | "all">("all");
-  const { foodStops } = mockJourneyPlan;
-  const filtered = filter === "all" ? foodStops : foodStops.filter((f) => f.type === filter);
+interface FoodPanelProps {
+  foodStops: FoodStop[];
+}
 
+export function FoodPanel({ foodStops }: FoodPanelProps) {
+  const [filter, setFilter] = useState<FoodStop["type"] | "all">("all");
+  
+  if (!foodStops) return <p className="text-xs text-slate-500">No dining choices found.</p>;
+  
+  const filtered = filter === "all" ? foodStops : foodStops.filter((f) => f.type === filter);
   const filters: (FoodStop["type"] | "all")[] = ["all", "cafe", "restaurant", "fastfood"];
 
   return (
@@ -53,7 +55,7 @@ export function FoodPanel() {
             className="glass-card rounded-2xl p-4 border border-white/5 hover:border-orange-400/20 transition-all duration-300 group"
           >
             <div className="flex items-start gap-3">
-              <div className="text-2xl">{typeEmojis[food.type]}</div>
+              <div className="text-2xl">{typeEmojis[food.type] || "🍽️"}</div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between mb-1">
                   <h3 className="font-semibold text-white text-sm group-hover:text-orange-300 transition-colors">{food.name}</h3>
@@ -64,7 +66,7 @@ export function FoodPanel() {
                 </div>
                 <p className="text-xs text-slate-500 mb-2">{food.cuisine} · {food.priceRange} · ~₹{food.estimatedCost}/person</p>
                 <div className="flex flex-wrap gap-1 mb-2">
-                  {food.highlights.map((h) => (
+                  {food.highlights && food.highlights.map((h) => (
                     <span key={h} className="text-[10px] px-1.5 py-0.5 bg-white/5 text-slate-400 rounded-md border border-white/8">{h}</span>
                   ))}
                 </div>

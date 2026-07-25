@@ -1,14 +1,18 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { mockJourneyPlan } from "@/lib/mockData";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { IndianRupee } from "lucide-react";
+import { BudgetBreakdown } from "@/types/journey";
 
 const COLORS = ["#00F2FE", "#4FACFE", "#a78bfa", "#fb923c"];
 
-export function BudgetPanel() {
-  const { budget_breakdown: b } = mockJourneyPlan;
+interface BudgetPanelProps {
+  budgetBreakdown: BudgetBreakdown;
+}
+
+export function BudgetPanel({ budgetBreakdown: b }: BudgetPanelProps) {
+  if (!b) return <p className="text-xs text-slate-500 font-medium">Budget breakdown not loaded.</p>;
 
   const pieData = [
     { name: "Transport", value: b.transport },
@@ -34,7 +38,7 @@ export function BudgetPanel() {
       >
         <div className="text-center mb-4">
           <div className="text-4xl font-bold text-white font-display">₹{b.total.toLocaleString("en-IN")}</div>
-          <div className="text-xs text-slate-400 mt-1">Total for {b.travellers} travellers · ₹{b.perPersonTotal.toLocaleString("en-IN")}/person</div>
+          <div className="text-xs text-slate-400 mt-1">Total for {b.travellers} travellers · ₹{Math.round(b.perPersonTotal).toLocaleString("en-IN")}/person</div>
         </div>
         <ResponsiveContainer width="100%" height={220}>
           <PieChart>
@@ -79,7 +83,7 @@ export function BudgetPanel() {
               <span className="font-bold text-white">{item.value.toLocaleString("en-IN")}</span>
             </div>
             <div className="text-xs text-slate-500 w-12 text-right">
-              {Math.round((item.value / b.total) * 100)}%
+              {b.total > 0 ? Math.round((item.value / b.total) * 100) : 0}%
             </div>
           </motion.div>
         ))}

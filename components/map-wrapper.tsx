@@ -1,13 +1,18 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Location, FoodPlace } from "@/types/planner";
+import { Location } from "@/types/planner";
+import { Essential, FoodStop, Attraction } from "@/types/journey";
 
 interface MapWrapperProps {
   origin: Location | null;
   destination: Location | null;
   routeGeometry?: [number, number][];
-  foodPlaces?: FoodPlace[];
+  foodPlaces?: FoodStop[];
+  essentials?: Essential[];
+  attractions?: Attraction[];
+  safetyMode?: boolean;
+  activeSegmentCoords?: [number, number][];
 }
 
 const DynamicMap = dynamic(() => import("./interactive-map"), {
@@ -26,6 +31,26 @@ const DynamicMap = dynamic(() => import("./interactive-map"), {
   ),
 });
 
-export default function MapWrapper({ origin, destination, routeGeometry, foodPlaces }: MapWrapperProps) {
-  return <DynamicMap origin={origin} destination={destination} routeGeometry={routeGeometry} foodPlaces={foodPlaces} />;
+export default function MapWrapper({
+  origin,
+  destination,
+  routeGeometry,
+  foodPlaces,
+  essentials,
+  attractions,
+  safetyMode,
+  activeSegmentCoords
+}: MapWrapperProps) {
+  return (
+    <DynamicMap
+      origin={origin}
+      destination={destination}
+      routeGeometry={routeGeometry}
+      foodPlaces={foodPlaces}
+      essentials={essentials}
+      attractions={attractions}
+      safetyMode={safetyMode}
+      activeSegmentCoords={activeSegmentCoords}
+    />
+  );
 }

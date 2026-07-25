@@ -1,12 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { mockJourneyPlan } from "@/lib/mockData";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip } from "recharts";
 import { Leaf, Trees } from "lucide-react";
+import { CarbonData } from "@/types/journey";
 
-export function CarbonPanel() {
-  const { carbon } = mockJourneyPlan;
+interface CarbonPanelProps {
+  carbon: CarbonData;
+}
+
+export function CarbonPanel({ carbon }: CarbonPanelProps) {
+  if (!carbon) return <p className="text-xs text-slate-500">Carbon footprints not loaded.</p>;
 
   const chartData = carbon.alternatives.map((alt) => ({
     name: alt.mode.replace(" (your route)", "").replace(" / Uber", ""),

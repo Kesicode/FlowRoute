@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import { SettingsProvider } from "@/lib/settings-context";
+import EmergencyOverlay from "@/components/emergency-overlay";
 
 export const metadata: Metadata = {
   title: "FlowRoute | AI-Powered Mobility Operating System",
@@ -18,12 +20,17 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark h-full">
       <body className="min-h-screen bg-background text-foreground antialiased flex flex-col font-sans selection:bg-primary/20 selection:text-primary">
-        <Navbar />
-        <main className="flex-grow flex flex-col pt-16">
-          {children}
-        </main>
-        <Footer />
+        <SettingsProvider>
+          <Navbar />
+          <main className="flex-grow flex flex-col pt-16">
+            {children}
+          </main>
+          <Footer />
+          <EmergencyOverlay />
+        </SettingsProvider>
       </body>
     </html>
   );
 }
+
+
