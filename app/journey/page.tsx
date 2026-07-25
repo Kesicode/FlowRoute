@@ -225,7 +225,7 @@ function JourneyContent() {
 
         // 8. Assemble dynamic Routes suggestions list
         const routeMinutes = Math.round(routeDur / 60);
-        const tRoute = (key: any) => t(key, language);
+        const tRoute = (key: string) => t(key, language);
 
         const metroRoute: JourneyRoute = {
           id: "route-metro-dynamic",
@@ -338,6 +338,7 @@ function JourneyContent() {
     }
 
     loadJourneyData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [from, to, date, budgetParam, travellers, preferencesParam, safetyMode]);
 
   // Auto-select first route once routes load
