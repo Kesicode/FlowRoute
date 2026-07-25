@@ -16,6 +16,19 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): nu
   return Math.round(R * c);
 }
 
+// Spreads query and mock points evenly across count segments of the route
+function sampleRouteCoords(routeGeometry: [number, number][], count: number = 6): [number, number][] {
+  if (!routeGeometry || routeGeometry.length === 0) return [];
+  if (routeGeometry.length <= count) return routeGeometry;
+  
+  const result: [number, number][] = [];
+  for (let i = 0; i < count; i++) {
+    const idx = Math.floor((i / (count - 1)) * (routeGeometry.length - 1));
+    result.push(routeGeometry[idx]);
+  }
+  return result;
+}
+
 export async function fetchNearbyPlaces(
   lat: number,
   lng: number,
@@ -27,12 +40,9 @@ export async function fetchNearbyPlaces(
     const pointsToQuery: [number, number][] = [];
 
     if (routeGeometry && routeGeometry.length > 0) {
-      // Sample start (origin), midpoint, and end (destination)
-      pointsToQuery.push(routeGeometry[0]);
-      if (routeGeometry.length > 2) {
-        pointsToQuery.push(routeGeometry[Math.floor(routeGeometry.length / 2)]);
-      }
-      pointsToQuery.push(routeGeometry[routeGeometry.length - 1]);
+      // Sample 6 points evenly across the entire route to ensure absolute uniform distribution
+      const sampled = sampleRouteCoords(routeGeometry, 6);
+      pointsToQuery.push(...sampled);
     } else {
       pointsToQuery.push([lat, lng]);
     }
@@ -47,10 +57,12 @@ export async function fetchNearbyPlaces(
     });
 
     uniquePoints.forEach(([pLat, pLng]) => {
-      query += `  node["amenity"~"hospital|police|pharmacy|atm|toilet|charging_station|restaurant|cafe|fast_food"](around:${radius},${pLat},${pLng});\n`;
-      query += `  node["tourism"~"attraction|museum|viewpoint"](around:${radius},${pLat},${pLng});\n`;
+      // Use a larger radius (3000m) for intermediate points along the route to guarantee continuous coverage
+      const queryRadius = routeGeometry && routeGeometry.length > 0 ? 3000 : radius;
+      query += `  node["amenity"~"hospital|police|pharmacy|atm|toilet|charging_station|restaurant|cafe|fast_food"](around:${queryRadius},${pLat},${pLng});\n`;
+      query += `  node["tourism"~"attraction|museum|viewpoint"](around:${queryRadius},${pLat},${pLng});\n`;
     });
-    query += `);\nout body 40;`;
+    query += `);\nout body 80;`; // Increase to 80 to pull a rich set of items across the entire path
 
     const response = await fetch("https://overpass-api.de/api/interpreter", {
       method: "POST",
@@ -75,7 +87,6 @@ export async function fetchNearbyPlaces(
     const getMinDistanceFromRoute = (elLat: number, elLng: number): number => {
       if (routeGeometry && routeGeometry.length > 0) {
         let minDist = Infinity;
-        // Sample points to make distance checks fast and smooth
         const step = Math.max(1, Math.floor(routeGeometry.length / 100));
         for (let i = 0; i < routeGeometry.length; i += step) {
           const pt = routeGeometry[i];
@@ -252,24 +263,24 @@ function getSimulatedPlaces(
   lng: number,
   routeGeometry: [number, number][] = []
 ): { essentials: Essential[]; foodStops: FoodStop[]; attractions: Attraction[] } {
-  let startLat = lat, startLng = lng;
-  let midLat = lat, midLng = lng;
-  let endLat = lat, endLng = lng;
-
+  // Sample 6 checkpoints along the route geometry
+  let checkPoints: [number, number][] = [];
   if (routeGeometry && routeGeometry.length > 0) {
-    const start = routeGeometry[0];
-    const mid = routeGeometry[Math.floor(routeGeometry.length / 2)];
-    const end = routeGeometry[routeGeometry.length - 1];
-    
-    startLat = start[0]; startLng = start[1];
-    midLat = mid[0]; midLng = mid[1];
-    endLat = end[0]; endLng = end[1];
+    checkPoints = sampleRouteCoords(routeGeometry, 6);
   } else {
-    // Simulated path offset
-    startLat = lat - 0.02; startLng = lng - 0.02;
-    midLat = lat - 0.01; midLng = lng - 0.01;
-    endLat = lat; endLng = lng;
+    // If no route geometry, synthesize 6 spread points extending outwards
+    for (let i = 0; i < 6; i++) {
+      checkPoints.push([lat - (0.02 * (1 - i / 5)), lng - (0.02 * (1 - i / 5))]);
+    }
   }
+
+  // Align simulated variables around the 6 sampled checkpoints
+  const cp0 = checkPoints[0]; // Start / 0%
+  const cp1 = checkPoints[1]; // 20%
+  const cp2 = checkPoints[2]; // 40%
+  const cp3 = checkPoints[3]; // 60%
+  const cp4 = checkPoints[4]; // 80%
+  const cp5 = checkPoints[5]; // End / 100%
 
   const essentials: Essential[] = [
     {
@@ -279,7 +290,7 @@ function getSimulatedPlaces(
       distance: 340,
       address: "24 Emergency Avenue",
       openNow: true,
-      coordinate: [endLat + 0.002, endLng - 0.001],
+      coordinate: [cp5[0] + 0.002, cp5[1] - 0.001],
     },
     {
       id: "sim-ess-2",
@@ -288,7 +299,7 @@ function getSimulatedPlaces(
       distance: 480,
       address: "10 Law Enforcement Road",
       openNow: true,
-      coordinate: [midLat - 0.003, midLng + 0.002],
+      coordinate: [cp2[0] - 0.002, cp2[1] + 0.002],
     },
     {
       id: "sim-ess-3",
@@ -297,7 +308,7 @@ function getSimulatedPlaces(
       distance: 120,
       address: "128 High Street Junction",
       openNow: true,
-      coordinate: [startLat + 0.001, startLng + 0.001],
+      coordinate: [cp1[0] + 0.001, cp1[1] + 0.001],
     },
     {
       id: "sim-ess-4",
@@ -306,7 +317,7 @@ function getSimulatedPlaces(
       distance: 65,
       address: "Junction Transit Hub",
       openNow: true,
-      coordinate: [midLat - 0.001, midLng - 0.0005],
+      coordinate: [cp3[0] - 0.001, cp3[1] - 0.0005],
     },
     {
       id: "sim-ess-5",
@@ -315,7 +326,7 @@ function getSimulatedPlaces(
       distance: 280,
       address: "Green Energy Parking Yard",
       openNow: true,
-      coordinate: [startLat + 0.0015, startLng - 0.002],
+      coordinate: [cp4[0] + 0.0015, cp4[1] - 0.002],
     },
   ];
 
@@ -332,7 +343,7 @@ function getSimulatedPlaces(
       openNow: true,
       address: "45 Culinary Circle",
       highlights: ["Vibrant Atmosphere", "Vegan Options", "Award-Winning Curry"],
-      coordinate: [endLat + 0.003, endLng + 0.003],
+      coordinate: [cp5[0] + 0.003, cp5[1] + 0.003],
     },
     {
       id: "sim-food-2",
@@ -346,7 +357,7 @@ function getSimulatedPlaces(
       openNow: true,
       address: "Transit Station Exit 2",
       highlights: ["Free Wi-Fi", "Fresh Pastries", "Organic Coffee"],
-      coordinate: [midLat - 0.0008, midLng + 0.0012],
+      coordinate: [cp2[0] - 0.0008, cp2[1] + 0.0012],
     },
     {
       id: "sim-food-3",
@@ -360,8 +371,36 @@ function getSimulatedPlaces(
       openNow: true,
       address: "78 Wellness Walkway",
       highlights: ["Diet Friendly", "Gluten-Free", "Wheelchair Accessible Entrance"],
-      coordinate: [startLat + 0.002, startLng - 0.003],
+      coordinate: [cp1[0] + 0.002, cp1[1] - 0.003],
     },
+    {
+      id: "sim-food-4",
+      name: "Transit Junction Diner",
+      cuisine: "Local South Indian",
+      type: "restaurant",
+      rating: 4.1,
+      priceRange: "₹",
+      estimatedCost: 180,
+      distanceFromRoute: 75,
+      openNow: true,
+      address: "Subway Corridor Entrance",
+      highlights: ["Quick Service", "Hot Beverages"],
+      coordinate: [cp3[0] + 0.0015, cp3[1] + 0.001],
+    },
+    {
+      id: "sim-food-5",
+      name: "Highway Break Café",
+      cuisine: "Snacks & Juices",
+      type: "cafe",
+      rating: 4.3,
+      priceRange: "₹₹",
+      estimatedCost: 300,
+      distanceFromRoute: 140,
+      openNow: true,
+      address: "Interchange Rest Stop",
+      highlights: ["Fresh Juices", "Restrooms Available"],
+      coordinate: [cp0[0] + 0.0025, cp0[1] - 0.0015],
+    }
   ];
 
   const attractions: Attraction[] = [
@@ -375,7 +414,7 @@ function getSimulatedPlaces(
       estimatedTime: 60,
       free: false,
       entryFee: 150,
-      coordinate: [endLat + 0.005, endLng - 0.004],
+      coordinate: [cp5[0] + 0.005, cp5[1] - 0.004],
       emoji: "🌸",
     },
     {
@@ -387,9 +426,21 @@ function getSimulatedPlaces(
       description: "Iconic colonial clock tower surrounded by a pedestrian-only crowded plaza with lively street performers.",
       estimatedTime: 20,
       free: true,
-      coordinate: [midLat - 0.0025, midLng - 0.003],
+      coordinate: [cp2[0] - 0.0025, cp2[1] - 0.003],
       emoji: "🗼",
     },
+    {
+      id: "sim-attr-3",
+      name: "Midway Viewpoint Pier",
+      category: "Scenic Spot",
+      rating: 4.6,
+      distance: 120,
+      description: "Picturesque waterfront viewpoint offering gorgeous photos of the local backwaters and bridges.",
+      estimatedTime: 15,
+      free: true,
+      coordinate: [cp1[0] - 0.003, cp1[1] + 0.002],
+      emoji: "🌅",
+    }
   ];
 
   // Adjust distances to be minimum from the actual routeGeometry if provided
