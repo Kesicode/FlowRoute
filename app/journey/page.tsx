@@ -387,12 +387,26 @@ function JourneyContent() {
 
   return (
     <div className="flex flex-1 flex-col lg:flex-row h-[calc(100vh-72px)] relative overflow-hidden bg-background">
-      
-      {/* Left Results Column */}
-      <aside className="w-full lg:w-[420px] xl:w-[460px] bg-card border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col h-[60%] lg:h-full z-10">
-        
+
+      {/* ── Map: compact strip on mobile, full pane on desktop ── */}
+      <section className="w-full h-44 shrink-0 lg:flex-grow lg:h-full lg:order-2 relative z-0">
+        <MapWrapper
+          origin={origin}
+          destination={destination}
+          routeGeometry={routeGeometry}
+          foodPlaces={foodStops}
+          essentials={essentials}
+          attractions={attractions}
+          safetyMode={safetyMode}
+          activeSegmentCoords={activeSegmentCoords || undefined}
+        />
+      </section>
+
+      {/* ── Left Results Column ── */}
+      <aside className="w-full lg:w-[420px] xl:w-[460px] lg:order-1 bg-card border-t lg:border-t-0 lg:border-r border-white/5 flex flex-col flex-1 lg:h-full overflow-hidden z-10">
+
         {/* Header */}
-        <div className="p-5 border-b border-white/5 bg-black/25">
+        <div className="p-4 border-b border-white/5 bg-black/25 shrink-0">
           <Link
             href="/planner"
             className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors text-xs mb-3 font-semibold"
@@ -402,16 +416,16 @@ function JourneyContent() {
 
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="font-display text-xl font-extrabold text-white truncate max-w-[280px]">
+              <h1 className="font-display text-lg font-extrabold text-white truncate max-w-[260px]">
                 {origin?.name} → {destination?.name}
               </h1>
               <span className="text-[9px] px-2 py-0.5 rounded-full bg-brand-cyan/15 text-brand-cyan border border-brand-cyan/25 font-bold animate-pulse">
                 ✓ {t("aiPlanReady", language)}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-1 font-medium">
+            <p className="text-xs text-slate-500 mt-0.5 font-medium">
               {new Date(date).toLocaleDateString(language === "en" ? "en-GB" : language === "hi" ? "hi-IN" : "ml-IN", {
-                weekday: "long",
+                weekday: "short",
                 day: "numeric",
                 month: "long"
               })}
@@ -420,15 +434,15 @@ function JourneyContent() {
           </div>
 
           {/* Quick stats banner */}
-          <div className="flex gap-2.5 mt-4">
+          <div className="flex gap-2 mt-3">
             {[
-              { label: "Optimal time", value: `${Math.round(duration/60)} min`, color: "text-brand-cyan" },
+              { label: "Est. time", value: `${Math.round(duration/60)} min`, color: "text-brand-cyan" },
               { label: "Best fare", value: `₹${routes[0]?.totalFare || 250}`, color: "text-emerald-400" },
               { label: "Temp", value: `${weather?.current?.temp || 28}°C`, color: "text-brand-blue" },
             ].map((s) => (
-              <div key={s.label} className="flex-1 py-2 glass-card rounded-xl border border-white/5 text-center">
-                <div className={`font-bold text-xs ${s.color}`}>{s.value}</div>
-                <div className="text-[9px] text-slate-500 uppercase tracking-wider mt-0.5">{s.label}</div>
+              <div key={s.label} className="flex-1 py-2 px-1 glass-card rounded-xl border border-white/5 text-center">
+                <div className={`font-bold text-sm leading-none ${s.color}`}>{s.value}</div>
+                <div className="text-[9px] text-slate-500 uppercase tracking-wide mt-1">{s.label}</div>
               </div>
             ))}
           </div>
@@ -436,19 +450,19 @@ function JourneyContent() {
 
         {/* Offline Notice banner */}
         {isOfflineMode && (
-          <div className="p-3 bg-amber-500/15 border-b border-amber-500/20 text-[10px] text-amber-400 font-bold flex gap-1.5 items-center">
+          <div className="px-3 py-2 bg-amber-500/15 border-b border-amber-500/20 text-[10px] text-amber-400 font-bold flex gap-1.5 items-center shrink-0">
             <WifiOff className="w-3.5 h-3.5 animate-pulse" />
             <span>{t("offlineNotice", language)}</span>
           </div>
         )}
 
         {/* Scrolling navigation tabs */}
-        <div className="flex overflow-x-auto p-3 gap-1.5 border-b border-white/5 no-scrollbar snap-x-tabs bg-black/10 shrink-0">
+        <div className="flex overflow-x-auto px-3 py-2 gap-1.5 border-b border-white/5 no-scrollbar snap-x-tabs bg-black/10 shrink-0">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 border ${
+              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 border ${
                 activeTab === tab.id
                   ? "bg-brand-cyan/15 text-brand-cyan border-brand-cyan/25"
                   : "bg-transparent text-slate-400 hover:text-slate-200 border-transparent"
@@ -467,8 +481,8 @@ function JourneyContent() {
           ))}
         </div>
 
-        {/* Panel Content Area */}
-        <div className="flex-1 p-4 overflow-y-auto bg-black/10">
+        {/* Panel Content Area — scrolls freely */}
+        <div className="flex-1 overflow-y-auto p-4 bg-black/10">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -476,7 +490,6 @@ function JourneyContent() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.15 }}
-              className="h-full"
             >
               {panelContent[activeTab]}
             </motion.div>
@@ -484,19 +497,6 @@ function JourneyContent() {
         </div>
       </aside>
 
-      {/* Right Interactive Map Frame */}
-      <section className="flex-grow h-[40%] lg:h-full relative z-0">
-        <MapWrapper
-          origin={origin}
-          destination={destination}
-          routeGeometry={routeGeometry}
-          foodPlaces={foodStops}
-          essentials={essentials}
-          attractions={attractions}
-          safetyMode={safetyMode}
-          activeSegmentCoords={activeSegmentCoords || undefined}
-        />
-      </section>
     </div>
   );
 }
