@@ -388,22 +388,8 @@ function JourneyContent() {
   return (
     <div className="flex flex-1 flex-col lg:flex-row h-[calc(100vh-72px)] relative overflow-hidden bg-background">
 
-      {/* ── Map: compact strip on mobile, full pane on desktop ── */}
-      <section className="w-full h-44 shrink-0 lg:flex-grow lg:h-full lg:order-2 relative z-0">
-        <MapWrapper
-          origin={origin}
-          destination={destination}
-          routeGeometry={routeGeometry}
-          foodPlaces={foodStops}
-          essentials={essentials}
-          attractions={attractions}
-          safetyMode={safetyMode}
-          activeSegmentCoords={activeSegmentCoords || undefined}
-        />
-      </section>
-
-      {/* ── Left Results Column ── */}
-      <aside className="w-full lg:w-[420px] xl:w-[460px] lg:order-1 bg-card border-t lg:border-t-0 lg:border-r border-white/5 flex flex-col flex-1 lg:h-full overflow-hidden z-10">
+      {/* ── Left Results Column (sidebar) ── */}
+      <aside className="w-full lg:w-[420px] xl:w-[460px] lg:shrink-0 lg:flex-none bg-card border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col h-[58%] lg:h-full overflow-hidden z-10">
 
         {/* Header */}
         <div className="p-4 border-b border-white/5 bg-black/25 shrink-0">
@@ -496,6 +482,20 @@ function JourneyContent() {
           </AnimatePresence>
         </div>
       </aside>
+
+      {/* ── Map: fills remaining height on mobile, full right pane on desktop ── */}
+      <section className="w-full flex-1 lg:flex-1 lg:h-full relative z-0">
+        <MapWrapper
+          origin={origin}
+          destination={destination}
+          routeGeometry={routeGeometry}
+          foodPlaces={foodStops}
+          essentials={essentials}
+          attractions={attractions}
+          safetyMode={safetyMode}
+          activeSegmentCoords={activeSegmentCoords || undefined}
+        />
+      </section>
 
     </div>
   );
