@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Location } from "@/types/planner";
-import { Essential, FoodStop, Attraction } from "@/types/journey";
+import { Essential, FoodStop, Attraction, JourneyRoute } from "@/types/journey";
 import { Hospital, ShieldAlert, Banknote, Fuel, Utensils, Landmark } from "lucide-react";
 
 interface InteractiveMapProps {
@@ -14,14 +14,16 @@ interface InteractiveMapProps {
   routeGeometry?: [number, number][];
   foodPlaces?: FoodStop[];
   essentials?: Essential[];
-  attractions?: Attraction[];
+  attractions?: Attraction[]
   safetyMode?: boolean;
   activeSegmentCoords?: [number, number][];
+  selectedRoute?: JourneyRoute | null;
+  allRoutes?: JourneyRoute[];
 }
 
-// Custom Leaflet Icons using L.divIcon with glowing Tailwind animations
-const createCustomIcon = (bgClass: string, pingBgClass: string, glowColor: string, symbol: string) => {
-  return L.divIcon({
+// ─── Custom Div Icons ─────────────────────────────────────────────────────────
+const createCustomIcon = (bgClass: string, pingBgClass: string, glowColor: string, symbol: string) =>
+  L.divIcon({
     className: "custom-div-icon",
     html: `
       <div class="relative w-8 h-8 flex items-center justify-center -translate-x-1/2 -translate-y-1/2">
@@ -34,10 +36,9 @@ const createCustomIcon = (bgClass: string, pingBgClass: string, glowColor: strin
     iconSize: [24, 24],
     iconAnchor: [12, 12],
   });
-};
 
-const createPOIIcon = (bgClass: string, symbol: string, glowColor: string) => {
-  return L.divIcon({
+const createPOIIcon = (bgClass: string, symbol: string, glowColor: string) =>
+  L.divIcon({
     className: "custom-div-icon",
     html: `
       <div class="relative w-6 h-6 flex items-center justify-center -translate-x-1/2 -translate-y-1/2 hover:scale-125 transition-transform duration-200">
@@ -49,63 +50,83 @@ const createPOIIcon = (bgClass: string, symbol: string, glowColor: string) => {
     iconSize: [20, 20],
     iconAnchor: [10, 10],
   });
-};
+
+const createETAIcon = (label: string, color: string) =>
+  L.divIcon({
+    className: "custom-div-icon",
+    html: `
+      <div style="background:${color};border:2px solid rgba(255,255,255,0.2);border-radius:8px;padding:3px 8px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.5);backdrop-filter:blur(4px);">
+        ${label}
+      </div>
+    `,
+    iconSize: [80, 28],
+    iconAnchor: [40, 14],
+  });
 
 const originIcon = createCustomIcon("bg-brand-cyan text-slate-950", "bg-brand-cyan/20", "rgba(0,242,254,0.6)", "A");
-const destIcon = createCustomIcon("bg-brand-blue", "bg-brand-blue/20", "rgba(79,172,254,0.6)", "B");
+const destIcon   = createCustomIcon("bg-brand-blue",                "bg-brand-blue/20",  "rgba(79,172,254,0.6)", "B");
 
-// Map controller to adjust view dynamically
+// ─── Route colour palette ─────────────────────────────────────────────────────
+const ROUTE_COLORS = ["#00F2FE", "#4FACFE", "#a855f7", "#34d399", "#fbbf24"];
+const ROUTE_COLORS_DIM = ["rgba(0,242,254,0.25)", "rgba(79,172,254,0.25)", "rgba(168,85,247,0.25)", "rgba(52,211,153,0.25)", "rgba(251,191,36,0.25)"];
+
+// ─── Map controller: fitBounds whenever selectedRoute or geometry changes ─────
 function MapController({
   origin,
   destination,
   routeGeometry,
-  activeSegmentCoords
+  activeSegmentCoords,
+  selectedRoute,
 }: {
   origin: [number, number] | null;
   destination: [number, number] | null;
   routeGeometry?: [number, number][];
   activeSegmentCoords?: [number, number][];
+  selectedRoute?: JourneyRoute | null;
 }) {
   const map = useMap();
 
   useEffect(() => {
-    if (activeSegmentCoords && activeSegmentCoords.length > 0) {
-      map.fitBounds(activeSegmentCoords, {
-        padding: [80, 80],
-        maxZoom: 16,
-        animate: true,
-        duration: 0.8,
-      });
-    } else if (routeGeometry && routeGeometry.length > 0) {
-      map.fitBounds(routeGeometry, {
-        padding: [60, 60],
-        maxZoom: 15,
-        animate: true,
-        duration: 1.2,
-      });
-    } else if (origin && destination) {
-      map.fitBounds([origin, destination], {
-        padding: [60, 60],
-        maxZoom: 15,
-        animate: true,
-        duration: 1.2,
-      });
-    } else if (origin) {
-      map.setView(origin, 14, {
-        animate: true,
-        duration: 1.0,
-      });
-    } else if (destination) {
-      map.setView(destination, 14, {
-        animate: true,
-        duration: 1.0,
-      });
+    if (!map) return;
+
+    // Priority 1: fitBounds to selected route's full geometry
+    if (selectedRoute) {
+      const allCoords: [number, number][] = selectedRoute.segments.flatMap(
+        (seg) => (seg.coordinates ?? []) as [number, number][]
+      );
+      if (allCoords.length > 1) {
+        map.fitBounds(allCoords, { padding: [60, 60], maxZoom: 15, animate: true, duration: 0.7 });
+        return;
+      }
     }
-  }, [origin, destination, routeGeometry, activeSegmentCoords, map]);
+
+    // Priority 2: active segment hover
+    if (activeSegmentCoords && activeSegmentCoords.length > 0) {
+      map.fitBounds(activeSegmentCoords, { padding: [80, 80], maxZoom: 16, animate: true, duration: 0.6 });
+      return;
+    }
+
+    // Priority 3: full route geometry
+    if (routeGeometry && routeGeometry.length > 0) {
+      map.fitBounds(routeGeometry, { padding: [60, 60], maxZoom: 15, animate: true, duration: 0.8 });
+      return;
+    }
+
+    // Fallback: origin + destination bounds
+    if (origin && destination) {
+      map.fitBounds([origin, destination], { padding: [60, 60], maxZoom: 15, animate: true, duration: 0.8 });
+    } else if (origin) {
+      map.setView(origin, 14, { animate: true, duration: 0.8 });
+    } else if (destination) {
+      map.setView(destination, 14, { animate: true, duration: 0.8 });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRoute, activeSegmentCoords, origin, destination, routeGeometry]);
 
   return null;
 }
 
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function InteractiveMap({
   origin,
   destination,
@@ -114,127 +135,225 @@ export default function InteractiveMap({
   essentials = [],
   attractions = [],
   safetyMode = false,
-  activeSegmentCoords = []
+  activeSegmentCoords = [],
+  selectedRoute = null,
+  allRoutes = [],
 }: InteractiveMapProps) {
-  
-  // Layer toggles
-  const [showHospitals, setShowHospitals] = useState(true);
-  const [showPolice, setShowPolice] = useState(true);
-  const [showATMs, setShowATMs] = useState(true);
-  const [showChargers, setShowChargers] = useState(true);
-  const [showFood, setShowFood] = useState(true);
-  const [showAttractions, setShowAttractions] = useState(true);
 
-  // Default coordinates centered on Kochi
+  const [showHospitals,   setShowHospitals]   = useState(true);
+  const [showPolice,      setShowPolice]       = useState(true);
+  const [showATMs,        setShowATMs]         = useState(true);
+  const [showChargers,    setShowChargers]     = useState(true);
+  const [showFood,        setShowFood]         = useState(true);
+  const [showAttractions, setShowAttractions]  = useState(true);
+
   const defaultCenter: [number, number] = [9.9312, 76.2673];
   const defaultZoom = 13;
 
   const originCoords: [number, number] | null = origin ? [origin.lat, origin.lng] : null;
-  const destCoords: [number, number] | null = destination ? [destination.lat, destination.lng] : null;
+  const destCoords:   [number, number] | null = destination ? [destination.lat, destination.lng] : null;
 
-  // Filter essentials
-  const hospitals = essentials.filter(e => e.type === "hospital" && !e.name.toLowerCase().includes("police"));
-  const policeStations = essentials.filter(e => e.type === "hospital" && e.name.toLowerCase().includes("police"));
-  const atms = essentials.filter(e => e.type === "atm");
-  const chargers = essentials.filter(e => e.type === "fuel");
+  const hospitals      = essentials.filter(e => e.type === "hospital" && !e.name.toLowerCase().includes("police"));
+  const policeStations = essentials.filter(e => e.type === "hospital" &&  e.name.toLowerCase().includes("police"));
+  const atms           = essentials.filter(e => e.type === "atm");
+  const chargers       = essentials.filter(e => e.type === "fuel");
+
+  // Midpoint of selected route for ETA label
+  const selectedCoords = selectedRoute
+    ? (selectedRoute.segments.flatMap(s => (s.coordinates ?? []) as [number, number][]))
+    : (routeGeometry ?? []);
+
+  const midPoint: [number, number] | null = selectedCoords.length > 1
+    ? selectedCoords[Math.floor(selectedCoords.length / 2)]
+    : null;
 
   return (
-    <div className="w-full h-full min-h-[400px] rounded-3xl border border-white/5 overflow-hidden shadow-2xl relative flex flex-col">
-      
-      {/* Floating Control Panel for POI toggles */}
-      <div className="absolute top-4 right-4 z-[45] glass-panel p-3 rounded-2xl border border-white/10 shadow-2xl flex flex-col gap-2 max-w-xs text-xs">
-        <span className="font-bold text-white uppercase tracking-wider text-[10px] mb-1 opacity-70 block">
-          Map Layers & Amenities
+    <div className="w-full h-full relative overflow-hidden" style={{ background: "#05070a" }}>
+
+      {/* ── Floating Layer Control Panel ── */}
+      <div className="absolute top-4 right-4 z-[450] glass-panel p-3 rounded-2xl border border-white/10 shadow-2xl flex flex-col gap-2 max-w-[200px]">
+        <span className="font-bold text-white uppercase tracking-wider text-[10px] opacity-70 block">
+          Map Layers
         </span>
-        
-        <div className="grid grid-cols-2 gap-2 text-[10px]">
-          <button
-            onClick={() => setShowHospitals(!showHospitals)}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-colors ${
-              showHospitals ? "bg-red-500/10 border-red-500/30 text-red-400 font-bold" : "bg-black/20 border-white/5 text-slate-500"
-            }`}
-          >
-            <Hospital className="w-3.5 h-3.5" />
-            <span>Hospitals</span>
-          </button>
-
-          <button
-            onClick={() => setShowPolice(!showPolice)}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-colors ${
-              showPolice ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400 font-bold" : "bg-black/20 border-white/5 text-slate-500"
-            }`}
-          >
-            <ShieldAlert className="w-3.5 h-3.5" />
-            <span>Police</span>
-          </button>
-
-          <button
-            onClick={() => setShowATMs(!showATMs)}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-colors ${
-              showATMs ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400 font-bold" : "bg-black/20 border-white/5 text-slate-500"
-            }`}
-          >
-            <Banknote className="w-3.5 h-3.5" />
-            <span>ATMs</span>
-          </button>
-
-          <button
-            onClick={() => setShowChargers(!showChargers)}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-colors ${
-              showChargers ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold" : "bg-black/20 border-white/5 text-slate-500"
-            }`}
-          >
-            <Fuel className="w-3.5 h-3.5" />
-            <span>EV Chargers</span>
-          </button>
-
-          <button
-            onClick={() => setShowFood(!showFood)}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-colors ${
-              showFood ? "bg-orange-500/10 border-orange-500/30 text-orange-400 font-bold" : "bg-black/20 border-white/5 text-slate-500"
-            }`}
-          >
-            <Utensils className="w-3.5 h-3.5" />
-            <span>Food stops</span>
-          </button>
-
-          <button
-            onClick={() => setShowAttractions(!showAttractions)}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-colors ${
-              showAttractions ? "bg-purple-500/10 border-purple-500/30 text-purple-400 font-bold" : "bg-black/20 border-white/5 text-slate-500"
-            }`}
-          >
-            <Landmark className="w-3.5 h-3.5" />
-            <span>Sights</span>
-          </button>
+        <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+          {[
+            { label: "Hospitals",    active: showHospitals,   toggle: () => setShowHospitals(!showHospitals),     color: "red",     icon: <Hospital className="w-3 h-3" /> },
+            { label: "Police",       active: showPolice,      toggle: () => setShowPolice(!showPolice),           color: "indigo",  icon: <ShieldAlert className="w-3 h-3" /> },
+            { label: "ATMs",         active: showATMs,        toggle: () => setShowATMs(!showATMs),               color: "yellow",  icon: <Banknote className="w-3 h-3" /> },
+            { label: "Chargers",     active: showChargers,    toggle: () => setShowChargers(!showChargers),       color: "emerald", icon: <Fuel className="w-3 h-3" /> },
+            { label: "Food",         active: showFood,        toggle: () => setShowFood(!showFood),               color: "orange",  icon: <Utensils className="w-3 h-3" /> },
+            { label: "Sights",       active: showAttractions, toggle: () => setShowAttractions(!showAttractions), color: "purple",  icon: <Landmark className="w-3 h-3" /> },
+          ].map(({ label, active, toggle, color, icon }) => (
+            <button
+              key={label}
+              onClick={toggle}
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg border transition-all ${
+                active
+                  ? `bg-${color}-500/10 border-${color}-500/30 text-${color}-400 font-bold`
+                  : "bg-black/20 border-white/5 text-slate-500"
+              }`}
+            >
+              {icon} {label}
+            </button>
+          ))}
         </div>
 
         {safetyMode && (
-          <div className="mt-1 pt-1.5 border-t border-white/5 text-[9px] text-fuchsia-400 font-bold flex items-center gap-1 animate-pulse">
-            🛡️ Women&apos;s Safety Mode Active: Safe pathways prioritized
+          <div className="pt-1.5 border-t border-white/5 text-[9px] text-fuchsia-400 font-bold flex items-center gap-1 animate-pulse">
+            🛡️ Safety Mode Active
           </div>
         )}
       </div>
+
+      {/* ── Route Legend Overlay (bottom left) ── */}
+      {allRoutes.length > 0 && (
+        <div className="absolute bottom-6 left-4 z-[450] glass-panel p-3 rounded-2xl border border-white/10 shadow-2xl space-y-1.5 max-w-[200px]">
+          <span className="text-[10px] font-bold text-white uppercase tracking-wider opacity-70 block mb-1">Routes</span>
+          {allRoutes.map((route, i) => (
+            <div key={route.id} className="flex items-center gap-2">
+              <div className="w-8 h-1.5 rounded-full" style={{ background: ROUTE_COLORS[i % ROUTE_COLORS.length] }} />
+              <span className={`text-[10px] font-semibold truncate ${selectedRoute?.id === route.id ? "text-white" : "text-slate-400"}`}>
+                {route.name}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── ETA Floating Badge (midpoint of selected route) ── */}
+      {selectedRoute && midPoint && (
+        <div
+          className="absolute z-[449] pointer-events-none"
+          style={{
+            // Approximate pixel placement; actual position handled by Leaflet Marker
+          }}
+        />
+      )}
 
       <MapContainer
         center={defaultCenter}
         zoom={defaultZoom}
         zoomControl={false}
-        className="w-full h-full flex-1"
+        className="w-full h-full"
         style={{ background: "#05070a" }}
       >
-        {/* Dark theme tile layers from CartoDB */}
+        {/* Dark CartoDB tile */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           maxZoom={20}
         />
 
+        {/* ── All route polylines (dim) ── */}
+        {allRoutes.map((route, i) => {
+          const coords: [number, number][] = route.segments.flatMap(
+            s => (s.coordinates ?? []) as [number, number][]
+          );
+          if (coords.length < 2) return null;
+          const isSelected = selectedRoute?.id === route.id;
+          const color = ROUTE_COLORS[i % ROUTE_COLORS.length];
+          const dimColor = ROUTE_COLORS_DIM[i % ROUTE_COLORS_DIM.length];
+          return (
+            <Polyline
+              key={route.id}
+              positions={coords}
+              pathOptions={{
+                color: isSelected ? color : dimColor,
+                weight: isSelected ? 6 : 3,
+                opacity: isSelected ? 1 : 0.5,
+                dashArray: isSelected ? undefined : "6 10",
+                lineCap: "round",
+                lineJoin: "round",
+              }}
+            />
+          );
+        })}
+
+        {/* Animated dashes on selected route */}
+        {selectedRoute && (() => {
+          const coords: [number, number][] = selectedRoute.segments.flatMap(
+            s => (s.coordinates ?? []) as [number, number][]
+          );
+          const i = allRoutes.findIndex(r => r.id === selectedRoute.id);
+          const color = ROUTE_COLORS[i >= 0 ? i % ROUTE_COLORS.length : 0];
+          return coords.length > 1 ? (
+            <Polyline
+              positions={coords}
+              pathOptions={{
+                color,
+                weight: 4,
+                opacity: 0.9,
+                dashArray: "12 16",
+                className: "animated-polyline",
+              }}
+            />
+          ) : null;
+        })()}
+
+        {/* ETA midpoint marker for selected route */}
+        {selectedRoute && midPoint && (
+          <Marker
+            position={midPoint}
+            icon={createETAIcon(
+              `⏱ ${selectedRoute.totalTime} min · ₹${selectedRoute.totalFare}`,
+              safetyMode ? "#9333ea" : "#0e7490"
+            )}
+          />
+        )}
+
+        {/* Fallback polyline when no allRoutes */}
+        {allRoutes.length === 0 && routeGeometry && routeGeometry.length > 0 && (
+          <>
+            <Polyline
+              positions={routeGeometry}
+              pathOptions={{
+                color: safetyMode ? "#d946ef" : "#00F2FE",
+                weight: 5,
+                opacity: 0.35,
+              }}
+            />
+            <Polyline
+              positions={routeGeometry}
+              pathOptions={{
+                color: safetyMode ? "#f472b6" : "#4FACFE",
+                weight: 4,
+                opacity: 0.95,
+                dashArray: "12, 16",
+                className: "animated-polyline",
+              }}
+            />
+          </>
+        )}
+
+        {/* Straight-line fallback */}
+        {allRoutes.length === 0 && (!routeGeometry || routeGeometry.length === 0) && originCoords && destCoords && (
+          <Polyline
+            positions={[originCoords, destCoords]}
+            pathOptions={{
+              color: safetyMode ? "#d946ef" : "#00F2FE",
+              weight: 3,
+              dashArray: "6, 8",
+              opacity: 0.8,
+            }}
+          />
+        )}
+
+        {/* Active segment highlight */}
+        {activeSegmentCoords && activeSegmentCoords.length > 0 && (
+          <>
+            <Polyline positions={activeSegmentCoords} pathOptions={{ color: "#ffc107", weight: 10, opacity: 0.35 }} />
+            <Polyline
+              positions={activeSegmentCoords}
+              pathOptions={{ color: "#fff", weight: 4, opacity: 0.95, dashArray: "4, 6", className: "animated-polyline" }}
+            />
+          </>
+        )}
+
         {/* Origin Marker */}
         {originCoords && (
           <Marker position={originCoords} icon={originIcon}>
-            <Popup className="custom-popup">
-              <div className="p-2 text-xs font-semibold text-slate-800">
+            <Popup>
+              <div className="p-2 text-xs font-semibold">
                 <span className="text-brand-cyan uppercase block text-[9px] font-bold">Origin</span>
                 {origin?.name}
               </div>
@@ -245,8 +364,8 @@ export default function InteractiveMap({
         {/* Destination Marker */}
         {destCoords && (
           <Marker position={destCoords} icon={destIcon}>
-            <Popup className="custom-popup">
-              <div className="p-2 text-xs font-semibold text-slate-800">
+            <Popup>
+              <div className="p-2 text-xs font-semibold">
                 <span className="text-brand-blue uppercase block text-[9px] font-bold">Destination</span>
                 {destination?.name}
               </div>
@@ -254,142 +373,37 @@ export default function InteractiveMap({
           </Marker>
         )}
 
-        {/* Dynamic POI Hospital Markers */}
-        {showHospitals && hospitals.map((hosp) => (
-          <Marker key={hosp.id} position={hosp.coordinate} icon={createPOIIcon("bg-red-500", "🏥", "rgba(239,68,68,0.7)")}>
-            <Popup className="custom-popup">
-              <div className="p-2 text-xs font-semibold text-slate-800">
-                <span className="text-red-500 uppercase block text-[9px] font-bold">Hospital</span>
-                {hosp.name}
-                <span className="block mt-0.5 text-[9px] font-normal text-slate-500">{hosp.address}</span>
-              </div>
-            </Popup>
+        {/* POI Markers */}
+        {showHospitals && hospitals.map(h => (
+          <Marker key={h.id} position={h.coordinate} icon={createPOIIcon("bg-red-500", "🏥", "rgba(239,68,68,0.7)")}>
+            <Popup><div className="p-2 text-xs"><span className="text-red-500 uppercase block text-[9px] font-bold">Hospital</span>{h.name}<span className="block mt-0.5 text-[9px] text-slate-500">{h.address}</span></div></Popup>
           </Marker>
         ))}
-
-        {/* Dynamic POI Police Station Markers */}
-        {showPolice && policeStations.map((pol) => (
-          <Marker key={pol.id} position={pol.coordinate} icon={createPOIIcon("bg-indigo-600", "👮", "rgba(79,70,229,0.7)")}>
-            <Popup className="custom-popup">
-              <div className="p-2 text-xs font-semibold text-slate-800">
-                <span className="text-indigo-600 uppercase block text-[9px] font-bold">Police Station</span>
-                {pol.name}
-                <span className="block mt-0.5 text-[9px] font-normal text-slate-500">Security checkpoint</span>
-              </div>
-            </Popup>
+        {showPolice && policeStations.map(p => (
+          <Marker key={p.id} position={p.coordinate} icon={createPOIIcon("bg-indigo-600", "👮", "rgba(79,70,229,0.7)")}>
+            <Popup><div className="p-2 text-xs"><span className="text-indigo-600 uppercase block text-[9px] font-bold">Police Station</span>{p.name}</div></Popup>
           </Marker>
         ))}
-
-        {/* Dynamic POI ATM Markers */}
-        {showATMs && atms.map((atm) => (
-          <Marker key={atm.id} position={atm.coordinate} icon={createPOIIcon("bg-yellow-500", "🏧", "rgba(234,179,8,0.7)")}>
-            <Popup className="custom-popup">
-              <div className="p-2 text-xs font-semibold text-slate-800">
-                <span className="text-yellow-600 uppercase block text-[9px] font-bold">ATM Cashpoint</span>
-                {atm.name}
-              </div>
-            </Popup>
+        {showATMs && atms.map(a => (
+          <Marker key={a.id} position={a.coordinate} icon={createPOIIcon("bg-yellow-500", "🏧", "rgba(234,179,8,0.7)")}>
+            <Popup><div className="p-2 text-xs"><span className="text-yellow-600 uppercase block text-[9px] font-bold">ATM</span>{a.name}</div></Popup>
           </Marker>
         ))}
-
-        {/* Dynamic POI EV Chargers Markers */}
-        {showChargers && chargers.map((chg) => (
-          <Marker key={chg.id} position={chg.coordinate} icon={createPOIIcon("bg-emerald-500", "🔌", "rgba(16,185,129,0.7)")}>
-            <Popup className="custom-popup">
-              <div className="p-2 text-xs font-semibold text-slate-800">
-                <span className="text-emerald-500 uppercase block text-[9px] font-bold">EV Charger</span>
-                {chg.name}
-                <span className="block mt-0.5 text-[9px] font-normal text-slate-500">Fast charging point</span>
-              </div>
-            </Popup>
+        {showChargers && chargers.map(c => (
+          <Marker key={c.id} position={c.coordinate} icon={createPOIIcon("bg-emerald-500", "🔌", "rgba(16,185,129,0.7)")}>
+            <Popup><div className="p-2 text-xs"><span className="text-emerald-500 uppercase block text-[9px] font-bold">EV Charger</span>{c.name}</div></Popup>
           </Marker>
         ))}
-
-        {/* Dynamic POI Food Stops Markers */}
-        {showFood && (foodPlaces.length > 0 ? foodPlaces : foodPlaces).map((food) => (
-          <Marker key={food.id} position={food.coordinate} icon={createPOIIcon("bg-orange-500", "🍽️", "rgba(249,115,22,0.7)")}>
-            <Popup className="custom-popup">
-              <div className="p-2 text-xs font-semibold text-slate-800">
-                <span className="text-orange-500 uppercase block text-[9px] font-bold">{food.cuisine}</span>
-                {food.name}
-                <span className="block text-[10px] text-slate-500 mt-1">⭐ {food.rating} · Price: {food.priceRange}</span>
-              </div>
-            </Popup>
+        {showFood && foodPlaces.map(f => (
+          <Marker key={f.id} position={f.coordinate} icon={createPOIIcon("bg-orange-500", "🍽️", "rgba(249,115,22,0.7)")}>
+            <Popup><div className="p-2 text-xs"><span className="text-orange-500 uppercase block text-[9px] font-bold">{f.cuisine}</span>{f.name}<span className="block text-[10px] text-slate-500 mt-1">⭐ {f.rating} · {f.priceRange}</span></div></Popup>
           </Marker>
         ))}
-
-        {/* Dynamic POI Attractions Markers */}
-        {showAttractions && attractions.map((attr) => (
-          <Marker key={attr.id} position={attr.coordinate} icon={createPOIIcon("bg-purple-500", attr.emoji || "📸", "rgba(168,85,247,0.7)")}>
-            <Popup className="custom-popup">
-              <div className="p-2 text-xs font-semibold text-slate-800">
-                <span className="text-purple-500 uppercase block text-[9px] font-bold">{attr.category}</span>
-                {attr.name}
-                <span className="block text-[10px] text-slate-500 mt-0.5">{attr.description}</span>
-              </div>
-            </Popup>
+        {showAttractions && attractions.map(a => (
+          <Marker key={a.id} position={a.coordinate} icon={createPOIIcon("bg-purple-500", a.emoji || "📸", "rgba(168,85,247,0.7)")}>
+            <Popup><div className="p-2 text-xs"><span className="text-purple-500 uppercase block text-[9px] font-bold">{a.category}</span>{a.name}<span className="block text-[10px] text-slate-500 mt-0.5">{a.description}</span></div></Popup>
           </Marker>
         ))}
-
-        {/* Connecting route polyline (OSRM or straight line) */}
-        {routeGeometry && routeGeometry.length > 0 ? (
-          <>
-            {/* Background solid route line */}
-            <Polyline
-              positions={routeGeometry}
-              pathOptions={{
-                color: safetyMode ? "#d946ef" : "#00F2FE", // Magenta in safety mode, Cyan otherwise
-                weight: 5,
-                opacity: 0.35,
-              }}
-            />
-            {/* Foreground animated dashed line */}
-            <Polyline
-              positions={routeGeometry}
-              pathOptions={{
-                color: safetyMode ? "#f472b6" : "#4FACFE",
-                weight: 4,
-                opacity: 0.95,
-                dashArray: "12, 16",
-                className: "animated-polyline"
-              }}
-            />
-          </>
-        ) : originCoords && destCoords ? (
-          <Polyline
-            positions={[originCoords, destCoords]}
-            pathOptions={{
-              color: safetyMode ? "#d946ef" : "#00F2FE",
-              weight: 3,
-              dashArray: "6, 8",
-              opacity: 0.8,
-            }}
-          />
-        ) : null}
-
-        {/* Highlighted active segment polyline */}
-        {activeSegmentCoords && activeSegmentCoords.length > 0 && (
-          <>
-            <Polyline
-              positions={activeSegmentCoords}
-              pathOptions={{
-                color: "#ffc107", // Glowing Gold
-                weight: 8,
-                opacity: 0.5,
-              }}
-            />
-            <Polyline
-              positions={activeSegmentCoords}
-              pathOptions={{
-                color: "#fff",
-                weight: 4,
-                opacity: 0.95,
-                dashArray: "4, 6",
-                className: "animated-polyline"
-              }}
-            />
-          </>
-        )}
 
         {/* Map state synchronizer */}
         <MapController
@@ -397,6 +411,7 @@ export default function InteractiveMap({
           destination={destCoords}
           routeGeometry={routeGeometry}
           activeSegmentCoords={activeSegmentCoords}
+          selectedRoute={selectedRoute}
         />
       </MapContainer>
     </div>

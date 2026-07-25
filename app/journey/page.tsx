@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -16,7 +16,9 @@ import {
   Loader2,
   Calendar,
   WifiOff,
-  CreditCard
+  CreditCard,
+  Map,
+  List,
 } from "lucide-react";
 import Link from "next/link";
 import { useSettings } from "@/lib/settings-context";
@@ -57,6 +59,8 @@ function JourneyContent() {
   const [activeTab, setActiveTab] = useState("route");
   const [loading, setLoading] = useState(true);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
+  const [mobileView, setMobileView] = useState<"routes" | "map">("routes");
 
   // Search parameters
   const from = searchParams.get("from") || "Kochi Airport";
@@ -333,6 +337,22 @@ function JourneyContent() {
     loadJourneyData();
   }, [from, to, date, budgetParam, travellers, preferencesParam, safetyMode]);
 
+  // Auto-select first route once routes load
+  useEffect(() => {
+    if (routes.length > 0 && !selectedRouteId) {
+      setSelectedRouteId(routes[0].id);
+    }
+  }, [routes, selectedRouteId]);
+
+  const handleRouteSelect = useCallback((route: JourneyRoute) => {
+    setSelectedRouteId(route.id);
+    setActiveSegmentCoords(null);
+  }, []);
+
+  const handleRouteHover = useCallback((route: JourneyRoute | null) => {
+    if (route) setSelectedRouteId(route.id);
+  }, []);
+
   const tabs: Tab[] = [
     { id: "route", label: t("tabRoute", language), icon: RouteIcon },
     { id: "booking", label: language === "en" ? "Tickets" : language === "hi" ? "टिकट" : "ടിക്കറ്റുകൾ", icon: CreditCard },
@@ -370,6 +390,8 @@ function JourneyContent() {
     ai: aiPlan ? <AiSuggestionsPanel aiSuggestions={aiPlan.aiSuggestions} /> : null,
   };
 
+  const selectedRoute = routes.find(r => r.id === selectedRouteId) ?? null;
+
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-6 bg-background">
@@ -386,118 +408,164 @@ function JourneyContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col lg:flex-row h-[calc(100vh-72px)] relative overflow-hidden bg-background">
+    <>
+      {/* ── Mobile view toggle bar ── */}
+      <div className="md:hidden flex items-center justify-center gap-2 py-2 px-4 border-b border-white/5 bg-black/30 shrink-0">
+        <button
+          onClick={() => setMobileView("routes")}
+          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+            mobileView === "routes"
+              ? "bg-brand-cyan/15 border-brand-cyan/30 text-brand-cyan"
+              : "bg-transparent border-white/10 text-slate-400"
+          }`}
+        >
+          <List className="w-3.5 h-3.5" /> Routes
+        </button>
+        <button
+          onClick={() => setMobileView("map")}
+          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+            mobileView === "map"
+              ? "bg-brand-cyan/15 border-brand-cyan/30 text-brand-cyan"
+              : "bg-transparent border-white/10 text-slate-400"
+          }`}
+        >
+          <Map className="w-3.5 h-3.5" /> Map
+        </button>
+      </div>
 
-      {/* ── Left Results Column (sidebar) ── */}
-      <aside className="w-full lg:w-[420px] xl:w-[460px] lg:shrink-0 lg:flex-none bg-card border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col h-[58%] lg:h-full overflow-hidden z-10">
+      {/* ── Google Maps split layout ── */}
+      <div className="journey-layout flex-1">
 
-        {/* Header */}
-        <div className="p-4 border-b border-white/5 bg-black/25 shrink-0">
-          <Link
-            href="/planner"
-            className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors text-xs mb-3 font-semibold"
-          >
-            <ArrowLeft className="w-4 h-4" /> {t("backToPlanner", language)}
-          </Link>
+        {/* ── Left routes panel ── */}
+        <div
+          className={`routes-panel ${
+            mobileView === "map" ? "hidden md:flex" : "flex"
+          } flex-col`}
+        >
+          {/* Sticky header inside scrollable panel */}
+          <div className="sticky top-0 z-10 p-4 border-b border-white/5 bg-card/95 backdrop-blur-xl shrink-0">
+            <Link
+              href="/planner"
+              className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors text-xs mb-3 font-semibold"
+            >
+              <ArrowLeft className="w-4 h-4" /> {t("backToPlanner", language)}
+            </Link>
 
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="font-display text-lg font-extrabold text-white truncate max-w-[260px]">
-                {origin?.name} → {destination?.name}
-              </h1>
-              <span className="text-[9px] px-2 py-0.5 rounded-full bg-brand-cyan/15 text-brand-cyan border border-brand-cyan/25 font-bold animate-pulse">
-                ✓ {t("aiPlanReady", language)}
-              </span>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="font-display text-lg font-extrabold text-white">
+                    {origin?.name} → {destination?.name}
+                  </h1>
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-brand-cyan/15 text-brand-cyan border border-brand-cyan/25 font-bold animate-pulse">
+                    ✓ {t("aiPlanReady", language)}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                  {new Date(date).toLocaleDateString(language === "en" ? "en-GB" : language === "hi" ? "hi-IN" : "ml-IN", {
+                    weekday: "short", day: "numeric", month: "long"
+                  })}
+                  &nbsp;·&nbsp;{travellers} {language === "en" ? `traveller${travellers !== 1 ? "s" : ""}` : language === "hi" ? "यात्री" : "യാത്രക്കാർ"}
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5 font-medium">
-              {new Date(date).toLocaleDateString(language === "en" ? "en-GB" : language === "hi" ? "hi-IN" : "ml-IN", {
-                weekday: "short",
-                day: "numeric",
-                month: "long"
-              })}
-              &nbsp;·&nbsp;{travellers} {language === "en" ? `traveller${travellers !== 1 ? "s" : ""}` : language === "hi" ? "यात्री" : "യാത്രക്കാർ"}
-            </p>
+
+            {/* Quick stats */}
+            <div className="flex gap-2 mt-3">
+              {[
+                { label: "Est. time", value: `${Math.round(duration/60)} min`, color: "text-brand-cyan" },
+                { label: "Best fare", value: `₹${routes[0]?.totalFare || 250}`, color: "text-emerald-400" },
+                { label: "Temp", value: `${weather?.current?.temp || 28}°C`, color: "text-brand-blue" },
+              ].map((s) => (
+                <div key={s.label} className="flex-1 py-2 px-1 glass-card rounded-xl border border-white/5 text-center">
+                  <div className={`font-bold text-sm leading-none ${s.color}`}>{s.value}</div>
+                  <div className="text-[9px] text-slate-500 uppercase tracking-wide mt-1">{s.label}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Quick stats banner */}
-          <div className="flex gap-2 mt-3">
-            {[
-              { label: "Est. time", value: `${Math.round(duration/60)} min`, color: "text-brand-cyan" },
-              { label: "Best fare", value: `₹${routes[0]?.totalFare || 250}`, color: "text-emerald-400" },
-              { label: "Temp", value: `${weather?.current?.temp || 28}°C`, color: "text-brand-blue" },
-            ].map((s) => (
-              <div key={s.label} className="flex-1 py-2 px-1 glass-card rounded-xl border border-white/5 text-center">
-                <div className={`font-bold text-sm leading-none ${s.color}`}>{s.value}</div>
-                <div className="text-[9px] text-slate-500 uppercase tracking-wide mt-1">{s.label}</div>
-              </div>
+          {/* Offline notice */}
+          {isOfflineMode && (
+            <div className="px-4 py-2 bg-amber-500/15 border-b border-amber-500/20 text-[10px] text-amber-400 font-bold flex gap-1.5 items-center shrink-0">
+              <WifiOff className="w-3.5 h-3.5 animate-pulse" />
+              <span>{t("offlineNotice", language)}</span>
+            </div>
+          )}
+
+          {/* Tabs */}
+          <div className="flex overflow-x-auto px-4 py-2 gap-1.5 border-b border-white/5 no-scrollbar snap-x-tabs bg-black/10 shrink-0 sticky top-[calc(theme(spacing.4)*2+theme(spacing.28))] z-10">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 border ${
+                  activeTab === tab.id
+                    ? "bg-brand-cyan/15 text-brand-cyan border-brand-cyan/25"
+                    : "bg-transparent text-slate-400 hover:text-slate-200 border-transparent"
+                }`}
+              >
+                <tab.icon className="w-3.5 h-3.5" />
+                {tab.label}
+                {tab.badge && (
+                  <span className={`text-[8px] px-1 py-0.5 rounded-full font-bold ml-0.5 ${
+                    activeTab === tab.id ? "bg-brand-cyan text-slate-950" : "bg-white/10 text-slate-500"
+                  }`}>
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
             ))}
           </div>
-        </div>
 
-        {/* Offline Notice banner */}
-        {isOfflineMode && (
-          <div className="px-3 py-2 bg-amber-500/15 border-b border-amber-500/20 text-[10px] text-amber-400 font-bold flex gap-1.5 items-center shrink-0">
-            <WifiOff className="w-3.5 h-3.5 animate-pulse" />
-            <span>{t("offlineNotice", language)}</span>
+          {/* Panel content — grows and scrolls */}
+          <div className="flex-1 p-4">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+              >
+                {activeTab === "route" ? (
+                  <RoutePanel
+                    routes={routes}
+                    selectedRouteId={selectedRouteId}
+                    onRouteSelect={handleRouteSelect}
+                    onRouteHover={handleRouteHover}
+                    onSelectSegment={setActiveSegmentCoords}
+                  />
+                ) : (
+                  panelContent[activeTab]
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
-        )}
-
-        {/* Scrolling navigation tabs */}
-        <div className="flex overflow-x-auto px-3 py-2 gap-1.5 border-b border-white/5 no-scrollbar snap-x-tabs bg-black/10 shrink-0">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 border ${
-                activeTab === tab.id
-                  ? "bg-brand-cyan/15 text-brand-cyan border-brand-cyan/25"
-                  : "bg-transparent text-slate-400 hover:text-slate-200 border-transparent"
-              }`}
-            >
-              <tab.icon className="w-3.5 h-3.5" />
-              {tab.label}
-              {tab.badge && (
-                <span className={`text-[8px] px-1 py-0.5 rounded-full font-bold ml-0.5 ${
-                  activeTab === tab.id ? "bg-brand-cyan text-slate-950" : "bg-white/10 text-slate-500"
-                }`}>
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          ))}
         </div>
 
-        {/* Panel Content Area — scrolls freely */}
-        <div className="flex-1 overflow-y-auto p-4 bg-black/10">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.15 }}
-            >
-              {panelContent[activeTab]}
-            </motion.div>
-          </AnimatePresence>
+        {/* ── Sticky Map Panel ── */}
+        <div
+          className={`map-panel ${
+            mobileView === "routes" ? "hidden md:block" : "block"
+          }`}
+        >
+          <MapWrapper
+            origin={origin}
+            destination={destination}
+            routeGeometry={routeGeometry}
+            foodPlaces={foodStops}
+            essentials={essentials}
+            attractions={attractions}
+            safetyMode={safetyMode}
+            activeSegmentCoords={activeSegmentCoords || undefined}
+            selectedRoute={selectedRoute}
+            allRoutes={routes}
+          />
         </div>
-      </aside>
 
-      {/* ── Map: fills remaining height on mobile, full right pane on desktop ── */}
-      <section className="w-full flex-1 lg:flex-1 lg:h-full relative z-0">
-        <MapWrapper
-          origin={origin}
-          destination={destination}
-          routeGeometry={routeGeometry}
-          foodPlaces={foodStops}
-          essentials={essentials}
-          attractions={attractions}
-          safetyMode={safetyMode}
-          activeSegmentCoords={activeSegmentCoords || undefined}
-        />
-      </section>
-
-    </div>
+      </div>
+    </>
   );
 }
 

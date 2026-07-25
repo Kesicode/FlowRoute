@@ -2,9 +2,9 @@
 
 import dynamic from "next/dynamic";
 import { Location } from "@/types/planner";
-import { Essential, FoodStop, Attraction } from "@/types/journey";
+import { Essential, FoodStop, Attraction, JourneyRoute } from "@/types/journey";
 
-interface MapWrapperProps {
+export interface MapWrapperProps {
   origin: Location | null;
   destination: Location | null;
   routeGeometry?: [number, number][];
@@ -13,12 +13,14 @@ interface MapWrapperProps {
   attractions?: Attraction[];
   safetyMode?: boolean;
   activeSegmentCoords?: [number, number][];
+  selectedRoute?: JourneyRoute | null;
+  allRoutes?: JourneyRoute[];
 }
 
 const DynamicMap = dynamic(() => import("./interactive-map"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full min-h-[400px] flex items-center justify-center bg-slate-950/20 rounded-3xl border border-white/5 relative overflow-hidden">
+    <div className="w-full h-full flex items-center justify-center bg-slate-950/20 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-tr from-brand-cyan/5 via-brand-blue/5 to-transparent animate-pulse"></div>
       <div className="flex flex-col items-center gap-4 text-center z-10">
         <div className="w-10 h-10 rounded-full border-2 border-brand-cyan border-t-transparent animate-spin"></div>
@@ -39,7 +41,9 @@ export default function MapWrapper({
   essentials,
   attractions,
   safetyMode,
-  activeSegmentCoords
+  activeSegmentCoords,
+  selectedRoute,
+  allRoutes,
 }: MapWrapperProps) {
   return (
     <DynamicMap
@@ -51,6 +55,8 @@ export default function MapWrapper({
       attractions={attractions}
       safetyMode={safetyMode}
       activeSegmentCoords={activeSegmentCoords}
+      selectedRoute={selectedRoute}
+      allRoutes={allRoutes}
     />
   );
 }

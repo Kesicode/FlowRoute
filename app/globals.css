@@ -167,6 +167,64 @@ h1, h2, h3, h4, h5, h6 {
   to   { stroke-dashoffset: 0; }
 }
 
+/* ─── Google Maps-style Journey Split Layout ─────────────────────────────── */
+.journey-layout {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  height: calc(100vh - 72px);
+  overflow: hidden;
+}
+
+.routes-panel {
+  overflow-y: auto;
+  height: calc(100vh - 72px);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.map-panel {
+  position: sticky;
+  top: 0;
+  height: calc(100vh - 72px);
+  overflow: hidden;
+}
+
+/* Tablet: 45% / 55% */
+@media (min-width: 768px) and (max-width: 1279px) {
+  .journey-layout {
+    grid-template-columns: 45% 55%;
+  }
+}
+
+/* Mobile: single column, map toggle */
+@media (max-width: 767px) {
+  .journey-layout {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 72px);
+    overflow: hidden;
+  }
+
+  .routes-panel {
+    flex: 1;
+    height: auto;
+    overflow-y: auto;
+  }
+
+  .map-panel {
+    position: relative;
+    height: 220px;
+    flex-shrink: 0;
+  }
+}
+
+/* Route card hover/selected highlight ring */
+.route-card-selected {
+  border-color: rgba(0, 242, 254, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(0, 242, 254, 0.18), 0 0 32px rgba(0, 242, 254, 0.12) !important;
+}
+
 /* ─── Gradient sweep animation (used in hero headline & AI button) ────────── */
 @keyframes gradient {
   0%   { background-position: 0% 50%; }
