@@ -434,11 +434,11 @@ function JourneyContent() {
       </div>
 
       {/* ── Google Maps split layout ── */}
-      <div className="journey-layout flex-1">
+      <div className="journey-layout">
 
         {/* ── Left routes panel ── */}
         <div
-          className={`routes-panel ${
+          className={`left-panel ${
             mobileView === "map" ? "hidden md:flex" : "flex"
           } flex-col`}
         >
@@ -546,7 +546,7 @@ function JourneyContent() {
 
         {/* ── Sticky Map Panel ── */}
         <div
-          className={`map-panel ${
+          className={`right-panel ${
             mobileView === "routes" ? "hidden md:block" : "block"
           }`}
         >
