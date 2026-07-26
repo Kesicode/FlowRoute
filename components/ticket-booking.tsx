@@ -86,7 +86,7 @@ export function TicketBooking({
 
             <button
               onClick={handleCheckout}
-              className="w-full py-3 px-4 bg-brand-cyan text-slate-950 font-bold rounded-2xl hover:bg-brand-cyan/90 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,242,254,0.3)] text-xs"
+              className="w-full py-3 px-4 bg-brand-cyan text-slate-950 font-bold rounded-2xl hover:bg-brand-cyan/90 transition-all flex items-center justify-center gap-2 shadow-md text-xs"
             >
               <CreditCard className="w-4 h-4" />
               Checkout with Smart Wallet
@@ -124,7 +124,7 @@ export function TicketBooking({
             </div>
             
             {/* NFC Pass graphic ticket card */}
-            <div className="w-full p-4 border border-emerald-500/30 rounded-2xl bg-gradient-to-br from-emerald-500/5 via-slate-950 to-slate-950 shadow-[0_0_24px_rgba(16,185,129,0.05)] relative overflow-hidden text-left space-y-3.5">
+            <div className="w-full p-4 border border-emerald-500/30 rounded-2xl bg-gradient-to-br from-emerald-500/5 via-slate-950 to-slate-950 shadow-md relative overflow-hidden text-left space-y-3.5">
               
               <div className="flex justify-between items-start">
                 <div>

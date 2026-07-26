@@ -2,7 +2,7 @@ import { WeatherCondition } from "../types/planner";
 
 export async function getWeather(lat: number, lng: number): Promise<WeatherCondition | null> {
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&hourly=relative_humidity_2m&forecast_days=1`;
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -37,12 +37,13 @@ export async function getWeather(lat: number, lng: number): Promise<WeatherCondi
         iconName = "cloud-lightning";
       }
 
+      const humidity = data.hourly?.relative_humidity_2m?.[0] ?? 50;
       return {
         temp: current.temperature,
         windSpeed: current.windspeed,
         type: type,
         iconName: iconName,
-        humidity: 50 // current_weather doesn't return humidity by default unless requested, defaulting to 50
+        humidity: humidity,
       };
     }
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, Suspense, useCallback } from "react";
+import { useState, useEffect, Suspense, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Route as RouteIcon,
@@ -105,8 +106,10 @@ function JourneyContent() {
 
       try {
         // 1. Geocode Locations
-        const originRes = await searchLocations(from);
-        const destRes = await searchLocations(to);
+        const [originRes, destRes] = await Promise.all([
+          searchLocations(from),
+          searchLocations(to),
+        ]);
 
         let originLoc = originRes.length > 0 ? originRes[0] : { name: from, displayName: from, lat: 10.1518, lng: 76.3929 };
         let destLoc = destRes.length > 0 ? destRes[0] : { name: to, displayName: to, lat: 9.9806, lng: 76.2758 };
@@ -122,11 +125,12 @@ function JourneyContent() {
         setOrigin(originLoc);
         setDestination(destLoc);
 
-        // 2. Fetch OSRM route geometry
-        let routeData: RouteData | null = null;
-        if (!offline) {
-          routeData = await getRoute(originLoc, destLoc);
-        }
+        // 2. Route, weather, POIs in parallel
+        const [routeData, weatherData, pois] = await Promise.all([
+          offline ? Promise.resolve(null) : getRoute(originLoc, destLoc),
+          offline ? Promise.resolve(null) : getWeather(destLoc.lat, destLoc.lng),
+          fetchNearbyPlaces(destLoc.lat, destLoc.lng, 2000, []),
+        ]);
 
         const routeCoords = routeData?.geometry || [
           [originLoc.lat, originLoc.lng],
@@ -138,12 +142,7 @@ function JourneyContent() {
         setRouteGeometry(routeCoords);
         setDuration(routeDur);
 
-        // 3. Fetch Weather
-        let weatherData: WeatherCondition | null = null;
-        if (!offline) {
-          weatherData = await getWeather(destLoc.lat, destLoc.lng);
-        }
-
+        // 3. Resolve Weather
         const resolvedWeather: WeatherData = {
           location: destLoc.displayName.split(",").slice(0, 2).join(", "),
           current: {
@@ -168,8 +167,7 @@ function JourneyContent() {
         };
         setWeather(resolvedWeather);
 
-        // 4. Fetch amenities nearby using Overpass API
-        const pois = await fetchNearbyPlaces(destLoc.lat, destLoc.lng, 2000, routeCoords);
+        // 4. Resolve amenities nearby
         setFoodStops(pois.foodStops);
         setEssentials(pois.essentials);
         setAttractions(pois.attractions);
@@ -225,7 +223,7 @@ function JourneyContent() {
 
         // 8. Assemble dynamic Routes suggestions list
         const routeMinutes = Math.round(routeDur / 60);
-        const tRoute = (key: string) => t(key, language);
+        const tRoute = (key: Parameters<typeof t>[0]) => t(key, language);
 
         const metroRoute: JourneyRoute = {
           id: "route-metro-dynamic",
@@ -371,7 +369,7 @@ function JourneyContent() {
     { id: "ai", label: t("tabAiTips", language), icon: Sparkles },
   ];
 
-  const panelContent: Record<string, React.ReactNode> = {
+  const panelContent = useMemo<Record<string, React.ReactNode>>(() => ({
     route: <RoutePanel routes={routes} onSelectSegment={setActiveSegmentCoords} />,
     booking: (
       <TicketBooking
@@ -392,7 +390,7 @@ function JourneyContent() {
     budget: budgetBreakdown ? <BudgetPanel budgetBreakdown={budgetBreakdown} /> : null,
     carbon: carbon ? <CarbonPanel carbon={carbon} /> : null,
     ai: aiPlan ? <AiSuggestionsPanel aiSuggestions={aiPlan.aiSuggestions} /> : null,
-  };
+  }), [routes, weather, foodStops, essentials, attractions, budgetBreakdown, carbon, aiPlan, selectedRouteId, handleRouteSelect, handleRouteHover, origin, destination, date, travellers]);
 
   const selectedRoute = routes.find(r => r.id === selectedRouteId) ?? null;
 
@@ -481,7 +479,7 @@ function JourneyContent() {
                 { label: t("bestFare", language), value: `₹${routes[0]?.totalFare || 250}`, color: "text-emerald-400" },
                 { label: t("tempLabel", language), value: `${weather?.current?.temp || 28}°C`, color: "text-brand-blue" },
               ].map((s) => (
-                <div key={s.label} className="flex-1 py-2 px-1 glass-card rounded-xl border border-white/5 text-center">
+                <div key={s.label} className="flex-1 py-2 px-1 card rounded-xl border border-white/5 text-center">
                   <div className={`font-bold text-sm leading-none ${s.color}`}>{s.value}</div>
                   <div className="text-[9px] text-slate-500 uppercase tracking-wide mt-1">{s.label}</div>
                 </div>
@@ -532,17 +530,19 @@ function JourneyContent() {
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.15 }}
               >
-                {activeTab === "route" ? (
-                  <RoutePanel
-                    routes={routes}
-                    selectedRouteId={selectedRouteId}
-                    onRouteSelect={handleRouteSelect}
-                    onRouteHover={handleRouteHover}
-                    onSelectSegment={setActiveSegmentCoords}
-                  />
-                ) : (
-                  panelContent[activeTab]
-                )}
+                <ErrorBoundary label={activeTab}>
+                  {activeTab === "route" ? (
+                    <RoutePanel
+                      routes={routes}
+                      selectedRouteId={selectedRouteId}
+                      onRouteSelect={handleRouteSelect}
+                      onRouteHover={handleRouteHover}
+                      onSelectSegment={setActiveSegmentCoords}
+                    />
+                  ) : (
+                    panelContent[activeTab]
+                  )}
+                </ErrorBoundary>
               </motion.div>
             </AnimatePresence>
           </div>

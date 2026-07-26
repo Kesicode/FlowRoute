@@ -75,7 +75,7 @@ export default function Navbar() {
           : "bg-transparent py-5"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2.5 group">
@@ -162,7 +162,7 @@ export default function Navbar() {
             {/* Emergency Button */}
             <button
               onClick={() => setEmergencyMode(true)}
-              className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-500 border border-red-500/20 hover:border-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.25)] hover:shadow-[0_0_20px_rgba(239,68,68,0.45)] transition-all duration-300 flex items-center gap-1.5 shrink-0"
+              className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-500 border border-red-500/20 hover:border-red-500/40 shadow-md hover:shadow-md transition-all duration-300 flex items-center gap-1.5 shrink-0"
             >
               <ShieldAlert className={`w-4 h-4 text-white ${!isOnline ? 'animate-pulse' : ''}`} />
               <span>{t("emergencyBtn", language)}</span>
@@ -192,7 +192,7 @@ export default function Navbar() {
           <div className="md:hidden flex items-center gap-2">
             <button
               onClick={() => setEmergencyMode(true)}
-              className="px-2.5 py-1 rounded-lg text-xs font-bold text-white bg-red-600 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.3)] animate-pulse"
+              className="px-2.5 py-1 rounded-lg text-xs font-bold text-white bg-red-600 border border-red-500/20 shadow-md animate-pulse"
             >
               SOS
             </button>

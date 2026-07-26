@@ -1,6 +1,24 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Language } from "@/services/translations";
 
+interface SpeechRecognitionEvent {
+  results: { [key: number]: { [key: number]: { transcript: string } } };
+}
+interface SpeechRecognitionErrorEvent {
+  error: string;
+}
+interface SpeechRecognitionInstance {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onstart: (() => void) | null;
+  onend: (() => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
 export interface UseVoiceReturn {
   isListening: boolean;
   transcript: string;
@@ -16,17 +34,22 @@ export function useVoice(): UseVoiceReturn {
   const [transcript, setTranscript] = useState("");
   const [isSupported, setIsSupported] = useState(false);
   
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
   // Initialize Speech Recognition
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
+      const win = window as typeof window & {
+        SpeechRecognition?: SpeechRecognitionConstructor;
+        webkitSpeechRecognition?: SpeechRecognitionConstructor;
+      };
+      const SpeechRecognitionAPI = win.SpeechRecognition || win.webkitSpeechRecognition;
+
       
-      if (SpeechRecognition) {
+      if (SpeechRecognitionAPI) {
         setIsSupported(true);
-        const rec = new SpeechRecognition();
+        const rec = new SpeechRecognitionAPI();
         rec.continuous = false;
         rec.interimResults = false;
         
@@ -39,7 +62,7 @@ export function useVoice(): UseVoiceReturn {
           setIsListening(false);
         };
 
-        rec.onerror = (event: any) => {
+        rec.onerror = (event: SpeechRecognitionErrorEvent) => {
           console.error("Speech recognition error:", event.error);
           setIsListening(false);
         };
@@ -62,7 +85,7 @@ export function useVoice(): UseVoiceReturn {
     try {
       recognitionRef.current.lang = locales[langCode] || "en-US";
       
-      recognitionRef.current.onresult = (event: any) => {
+      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
         const resultText = event.results[0][0].transcript;
         setTranscript(resultText);
       };

@@ -54,7 +54,7 @@ export function EssentialsPanel({ essentials }: EssentialsPanelProps) {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.06 }}
-              className="glass-card rounded-2xl p-4 border border-white/5 flex items-center gap-4 hover:border-white/10 transition-all"
+              className="card rounded-2xl p-4 border border-white/5 flex items-center gap-4 hover:border-white/10 transition-all"
             >
               <div className={`p-3 rounded-xl border ${config.color}`}>
                 <Icon className="w-5 h-5" />

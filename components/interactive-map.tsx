@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, LayersControl } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Location } from "@/types/planner";
@@ -65,6 +65,18 @@ const createETAIcon = (label: string, color: string) =>
 
 const originIcon = createCustomIcon("bg-brand-cyan text-slate-950", "bg-brand-cyan/20", "rgba(0,242,254,0.6)", "A");
 const destIcon   = createCustomIcon("bg-brand-blue",                "bg-brand-blue/20",  "rgba(79,172,254,0.6)", "B");
+
+const userLocationIcon = L.divIcon({
+  className: "custom-div-icon",
+  html: `
+    <div style="position:relative; width:24px; height:24px; display:flex; align-items:center; justify-content:center;">
+      <div style="position:absolute; width:20px; height:20px; border-radius:50%; background-color:rgba(0,242,254,0.4);" class="animate-ping"></div>
+      <div style="z-index:10; width:14px; height:14px; border-radius:50%; background-color:#00F2FE; border:2px solid white; box-shadow:0 0 12px rgba(0,242,254,0.9);"></div>
+    </div>
+  `,
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+});
 
 // ─── Route colour palette ─────────────────────────────────────────────────────
 const ROUTE_COLORS = ["#00F2FE", "#4FACFE", "#a855f7", "#34d399", "#fbbf24"];
@@ -147,6 +159,9 @@ export default function InteractiveMap({
   const [showFood,        setShowFood]         = useState(true);
   const [showAttractions, setShowAttractions]  = useState(true);
   const [isDarkMode,      setIsDarkMode]       = useState(true);
+  const [mapInstance,     setMapInstance]      = useState<L.Map | null>(null);
+  const [isLocating,      setIsLocating]       = useState(false);
+  const [userLocation,    setUserLocation]     = useState<[number, number] | null>(null);
 
   useEffect(() => {
     const checkTheme = () => {
@@ -184,11 +199,28 @@ export default function InteractiveMap({
     ? selectedCoords[Math.floor(selectedCoords.length / 2)]
     : null;
 
+  const handleLocateMe = () => {
+    if (!navigator.geolocation || !mapInstance) return;
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsLocating(false);
+        const { latitude, longitude } = pos.coords;
+        mapInstance.flyTo([latitude, longitude], 15, { animate: true, duration: 1.5 });
+      },
+      (err) => {
+        setIsLocating(false);
+        console.error("Geolocation error:", err);
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    );
+  };
+
   return (
     <div className="w-full h-full relative overflow-hidden" style={{ background: "#05070a" }}>
 
       {/* ── Floating Layer Control Panel ── */}
-      <div className="absolute top-4 right-4 z-[450] glass-panel p-3 rounded-2xl border border-white/10 shadow-2xl flex flex-col gap-2 max-w-[200px]">
+      <div className="absolute top-4 right-4 z-[450] bg-slate-950/85 backdrop-blur-lg p-3 rounded-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col gap-2 max-w-[200px]">
         <span className="font-bold text-white uppercase tracking-wider text-[10px] opacity-70 block">
           Map Layers
         </span>
@@ -224,7 +256,7 @@ export default function InteractiveMap({
 
       {/* ── Route Legend Overlay (bottom left) ── */}
       {allRoutes.length > 0 && (
-        <div className="absolute bottom-6 left-4 z-[450] glass-panel p-3 rounded-2xl border border-white/10 shadow-2xl space-y-1.5 max-w-[200px]">
+        <div className="absolute bottom-24 left-4 z-[450] card p-3 rounded-2xl border border-white/10 shadow-2xl space-y-1.5 max-w-[200px]">
           <span className="text-[10px] font-bold text-white uppercase tracking-wider opacity-70 block mb-1">Routes</span>
           {allRoutes.map((route, i) => (
             <div key={route.id} className="flex items-center gap-2">
@@ -247,23 +279,54 @@ export default function InteractiveMap({
         />
       )}
 
+      {/* ── Locate Me Button (bottom left, next to layers control) ── */}
+      <button
+        onClick={handleLocateMe}
+        disabled={isLocating}
+        title="Locate Me"
+        className="absolute bottom-[10px] left-[56px] z-[450] flex items-center justify-center w-[36px] h-[36px] bg-slate-950/85 backdrop-blur-lg border border-white/10 rounded-[12px] shadow-[0_8px_32px_rgba(0,0,0,0.5)] text-white hover:bg-slate-900 transition-colors disabled:opacity-50"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isLocating ? "animate-spin text-brand-cyan" : ""}>
+          <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+        </svg>
+      </button>
+
       <MapContainer
+        ref={setMapInstance}
         center={defaultCenter}
         zoom={defaultZoom}
-        zoomControl={false}
+        zoomControl={true}
+        minZoom={3}
+        maxBounds={[[-90, -1000], [90, 1000]]}
+        maxBoundsViscosity={1.0}
         className="w-full h-full"
         style={{ background: isDarkMode ? "#05070a" : "#f8fafc" }}
       >
-        {/* Theme-aware tile layer */}
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url={
-            isDarkMode
-              ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          }
-          maxZoom={20}
-        />
+        <LayersControl position="bottomleft">
+          <LayersControl.BaseLayer checked name="Satellite">
+            <TileLayer
+              attribution='&copy; Google Maps'
+              url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+              maxZoom={20}
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Default (Streets)">
+            <TileLayer
+              attribution='&copy; Google Maps'
+              url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+              maxZoom={20}
+            />
+          </LayersControl.BaseLayer>
+        </LayersControl>
+
+        {/* ── User Location Marker ── */}
+        {userLocation && (
+          <Marker key={`user-loc-${userLocation[0]}-${userLocation[1]}`} position={userLocation} icon={userLocationIcon}>
+            <Popup className="custom-popup" closeButton={false}>
+              <div className="font-sans text-[11px] font-bold text-slate-800 text-center">You are here</div>
+            </Popup>
+          </Marker>
+        )}
 
         {/* ── All route polylines (dim) ── */}
         {allRoutes.map((route, i) => {

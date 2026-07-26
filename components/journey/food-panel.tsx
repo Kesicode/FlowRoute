@@ -52,7 +52,7 @@ export function FoodPanel({ foodStops }: FoodPanelProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.06 }}
-            className="glass-card rounded-2xl p-4 border border-white/5 hover:border-orange-400/20 transition-all duration-300 group"
+            className="card rounded-2xl p-4 border border-white/5 hover:border-orange-400/20 transition-all duration-300 group"
           >
             <div className="flex items-start gap-3">
               <div className="text-2xl">{typeEmojis[food.type] || "🍽️"}</div>

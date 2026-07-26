@@ -34,7 +34,7 @@ export function BudgetPanel({ budgetBreakdown: b }: BudgetPanelProps) {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="glass-card rounded-2xl p-5 border border-white/5"
+        className="card rounded-2xl p-5 border border-white/5"
       >
         <div className="text-center mb-4">
           <div className="text-4xl font-bold text-white font-display">₹{b.total.toLocaleString("en-IN")}</div>
@@ -74,7 +74,7 @@ export function BudgetPanel({ budgetBreakdown: b }: BudgetPanelProps) {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.07 + 0.2 }}
-            className="flex items-center gap-3 p-3 glass-card rounded-xl border border-white/5"
+            className="flex items-center gap-3 p-3 card rounded-xl border border-white/5"
           >
             <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
             <span className="flex-1 text-sm text-slate-300">{item.label}</span>

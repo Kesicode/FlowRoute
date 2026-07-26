@@ -211,64 +211,29 @@ export default function Home() {
               </Link>
             </div>
           </motion.div>
-
-          {/* Preference chips preview */}
-          <motion.div variants={itemVariants} className="flex flex-wrap justify-center gap-2">
-            {travelPreferences.slice(0, 7).map((pref) => (
-              <Link
-                key={pref.id}
-                href="/planner"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white/5 border border-white/10 text-slate-400 hover:border-brand-cyan/40 hover:text-brand-cyan hover:bg-brand-cyan/5 transition-all duration-200"
-              >
-                <span>{pref.emoji}</span>
-                {pref.label}
-              </Link>
-            ))}
-            <Link
-              href="/planner"
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-white/5 border border-white/10 text-slate-500 hover:text-white transition-colors"
-            >
-              +3 more <ChevronRight className="w-3 h-3" />
-            </Link>
-          </motion.div>
         </motion.div>
 
-        {/* Scroll indicator */}
+        {/* Route Scroll indicator */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5 }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
         >
-          <span className="text-xs text-slate-600 uppercase tracking-widest">Scroll</span>
-          <motion.div
-            animate={{ y: [0, 6, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className="w-5 h-8 rounded-full border border-white/20 flex items-start justify-center pt-1.5"
-          >
-            <div className="w-1 h-2 rounded-full bg-brand-cyan/60" />
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* ─── STATS BAR ────────────────────────────────────────────────────── */}
-      <section className="border-y border-white/5 bg-white/[0.02] py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { value: "10+", label: "Travel Modes", icon: "🚌" },
-              { value: "8", label: "Journey Sections", icon: "🗺️" },
-              { value: "100%", label: "Hardcoded Demo", icon: "⚡" },
-              { value: "Zero", label: "Backend Required", icon: "🔌" }
-            ].map((stat) => (
-              <div key={stat.label} className="glass-card rounded-2xl border border-white/5 p-4 text-center">
-                <div className="text-3xl mb-2">{stat.icon}</div>
-                <div className="text-2xl font-bold text-white font-display">{stat.value}</div>
-                <div className="text-xs text-slate-400 mt-1 font-medium">{stat.label}</div>
-              </div>
-            ))}
+          <span className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-medium">Explore</span>
+          <div className="relative w-6 h-16 flex justify-center">
+            {/* Dotted route path */}
+            <div className="absolute top-2 bottom-0 w-0.5 border-l-2 border-dashed border-white/10" />
+            {/* Moving location pin */}
+            <motion.div
+              animate={{ y: [0, 40, 0] }}
+              transition={{ duration: 2.5, ease: "easeInOut", repeat: Infinity }}
+              className="absolute top-0 text-brand-cyan drop-shadow-[0_0_10px_rgba(0,242,254,0.6)]"
+            >
+              <MapPin className="w-5 h-5 fill-brand-cyan/10" />
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* ─── FEATURES ─────────────────────────────────────────────────────── */}
@@ -299,7 +264,7 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08, duration: 0.5 }}
-                className={`group glass-card rounded-2xl p-6 border border-white/5 ${feature.border} transition-all duration-300`}
+                className={`group glass-card rounded-2xl p-8 border border-white/5 ${feature.border} hover:-translate-y-2 hover:shadow-[0_12px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl hover:bg-white/[0.03] transition-all duration-500`}
               >
                 <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${feature.gradient} mb-4`}>
                   <feature.icon className={`w-5 h-5 ${feature.iconColor}`} />
@@ -332,8 +297,8 @@ export default function Home() {
             {/* Connecting lines between steps */}
             <div className="hidden md:absolute md:flex inset-0 items-start justify-center pointer-events-none" style={{ top: '40px' }}>
               <div className="w-full flex items-center px-[calc(100%/6)]">
-                <div className="flex-1 h-px bg-gradient-to-r from-brand-cyan/40 to-brand-blue/40" />
-                <div className="flex-1 h-px bg-gradient-to-r from-brand-blue/40 to-brand-cyan/40" />
+                <div className="flex-1 h-0.5 bg-gradient-to-r from-brand-cyan/20 via-brand-cyan/60 to-brand-blue/20 animate-pulse" />
+                <div className="flex-1 h-0.5 bg-gradient-to-r from-brand-blue/20 via-brand-blue/60 to-brand-cyan/20 animate-pulse" style={{ animationDelay: '1s' }} />
               </div>
             </div>
 
@@ -344,11 +309,11 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.15, duration: 0.6 }}
-                className="text-center relative"
+                className="text-center relative group cursor-default"
               >
-                <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-tr from-brand-cyan/10 to-brand-blue/10 border border-brand-cyan/20 mb-6 mx-auto">
-                  <step.icon className={`w-8 h-8 text-${step.color}`} />
-                  <span className="absolute -top-2 -right-2 text-[10px] font-bold text-background bg-brand-cyan rounded-full w-5 h-5 flex items-center justify-center">
+                <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-tr from-brand-cyan/10 to-brand-blue/10 border border-brand-cyan/20 mb-8 mx-auto group-hover:scale-110 group-hover:shadow-[0_0_30px_rgba(0,242,254,0.3)] transition-all duration-500 backdrop-blur-md">
+                  <step.icon className={`w-10 h-10 text-${step.color} group-hover:animate-bounce`} />
+                  <span className="absolute -top-3 -right-3 text-[12px] font-bold text-background bg-brand-cyan rounded-full w-7 h-7 flex items-center justify-center shadow-lg border-[2px] border-background">
                     {i + 1}
                   </span>
                 </div>
@@ -392,8 +357,8 @@ export default function Home() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.05 }}
-                whileHover={{ y: -4, scale: 1.02 }}
-                className="glass-card border border-white/5 hover:border-brand-cyan/30 rounded-2xl p-4 text-center cursor-pointer group transition-all duration-300"
+                whileHover={{ y: -6, scale: 1.05 }}
+                className="glass-card border border-white/5 hover:border-brand-cyan/50 hover:bg-white/[0.05] rounded-3xl p-5 text-center cursor-pointer group transition-all duration-300 hover:shadow-[0_10px_30px_rgba(0,242,254,0.2)]"
               >
                 <div className="text-3xl mb-2">{pref.emoji}</div>
                 <div className="text-sm font-semibold text-white mb-1">{pref.label}</div>
@@ -405,35 +370,35 @@ export default function Home() {
       </section>
 
       {/* ─── CTA BANNER ───────────────────────────────────────────────────── */}
-      <section className="py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-brand-cyan/10 via-transparent to-brand-blue/10 pointer-events-none" />
-        <div className="absolute inset-0 border-y border-white/5 pointer-events-none" />
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+      <section className="py-28 relative overflow-hidden border-t border-white/5">
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-cyan/10 via-transparent to-brand-blue/10 pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-brand-cyan/20 rounded-full blur-[150px] pointer-events-none" />
+        
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 glass-card p-12 rounded-[3rem] border border-white/10 shadow-2xl">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <div className="text-5xl mb-6">✈️</div>
-            <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-6">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-white mb-6 leading-tight">
               Ready to plan your <br />
-              <span className="text-brand-cyan">perfect journey?</span>
+              <span className="bg-gradient-to-r from-brand-cyan to-brand-blue bg-clip-text text-transparent">perfect journey?</span>
             </h2>
-            <p className="text-slate-400 text-lg mb-10 max-w-xl mx-auto">
+            <p className="text-slate-300 text-lg mb-12 max-w-xl mx-auto leading-relaxed">
               Join FlowRoute and experience travel planning that considers everything — not just the map.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-5 justify-center">
               <Link
                 href="/planner"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-brand-cyan text-background font-bold text-base hover:bg-brand-cyan/90 hover:shadow-[0_0_30px_rgba(0,242,254,0.4)] transition-all duration-300"
+                className="group inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-gradient-to-r from-brand-cyan to-brand-blue text-background font-bold text-lg hover:shadow-[0_0_40px_rgba(0,242,254,0.6)] transition-all duration-300 hover:-translate-y-1"
               >
-                <Route className="w-5 h-5" />
+                <Route className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                 Start Planning Now
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
                 href="/dashboard"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-medium text-base hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+                className="inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-white/5 border border-white/10 text-white font-semibold text-lg hover:bg-white/10 hover:border-white/30 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
               >
                 <Users className="w-5 h-5" />
                 View Dashboard

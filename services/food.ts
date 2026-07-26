@@ -1,5 +1,13 @@
 import { FoodPlace, Location } from "../types/planner";
 
+interface NominatimFoodResult {
+  place_id: number | string;
+  lat: string;
+  lon: string;
+  name?: string;
+  display_name: string;
+}
+
 export async function findFoodNearLocation(location: Location): Promise<FoodPlace[]> {
   try {
     // Search for restaurants, cafes, etc. near the location using Nominatim.
@@ -18,7 +26,7 @@ export async function findFoodNearLocation(location: Location): Promise<FoodPlac
 
     const data = await response.json();
     
-    return data.map((item: any, index: number) => {
+    return data.map((item: NominatimFoodResult) => {
       // Very basic distance calculation using Pythagorean theorem for sorting, 
       // not geographically perfect but fine for a small area.
       const dLat = (parseFloat(item.lat) - location.lat) * 111000;

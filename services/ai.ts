@@ -1,11 +1,8 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { TravelPreference, AiSuggestion, Attraction, FoodStop, Essential, JourneyPlan, JourneyRoute } from "@/types/journey";
+import { TravelPreference, AiSuggestion } from "@/types/journey";
+import { DynamicAiPlanSchema, ParsedQuerySchema } from "@/lib/schemas";
 
-const apiKey = typeof window !== "undefined" 
-  ? (window.localStorage.getItem("GEMINI_API_KEY") || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "")
-  : (process.env.GEMINI_API_KEY || "");
-
-const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+// AI calls are proxied through server-side API routes to protect the API key.
+// See app/api/ai/plan/route.ts and app/api/ai/parse/route.ts
 
 export interface ParsedQuery {
   from: string;
@@ -117,36 +114,17 @@ export function parseQueryLocally(query: string): ParsedQuery {
 }
 
 export async function parseQueryWithAI(query: string): Promise<ParsedQuery> {
-  if (!genAI) {
-    return parseQueryLocally(query);
-  }
-
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const prompt = `You are the NLU query parser for FlowRoute, an AI-powered inclusive smart mobility assistant.
-    Analyze the user's search query and extract structured fields:
-    User request: "${query}"
-
-    Map preferences to these allowed values: "elderly", "family", "baby", "wheelchair", "budget", "fastest", "eco", "foodie", "tourist", "backpacker".
-    Set "safetyMode" to true if user mentions terms like "safety", "safe", "secure", "women's safety", "alone", "night".
-    
-    Output strictly a JSON object with:
-    {
-      "from": "origin name",
-      "to": "destination name",
-      "budget": number or null,
-      "travellers": number or null,
-      "preferences": ["pref1", "pref2"],
-      "safetyMode": boolean
-    }
-    
-    Ensure valid JSON and no code block formatting. Only output the JSON.`;
-
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().replace(/```json/g, "").replace(/```/g, "").trim();
-    return JSON.parse(text) as ParsedQuery;
+    const res = await fetch("/api/ai/parse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+    if (!res.ok) throw new Error("API parse failed");
+    const data = await res.json();
+    return data as ParsedQuery;
   } catch (error) {
-    console.error("Gemini query parse failed, falling back to local parsing:", error);
+    console.error("AI parse API failed, falling back to local:", error);
     return parseQueryLocally(query);
   }
 }
@@ -284,7 +262,27 @@ export async function generateDynamicPlan(params: {
   isOffline: boolean;
   language?: string;
 }): Promise<DynamicAiPlan> {
-  const { from, to, budget, preferences, safetyMode, language = "en" } = params;
+  let { from, to, budget, preferences, safetyMode, language = "en" } = params;
+
+  if (!params.isOffline) {
+    try {
+      const res = await fetch("/api/ai/plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from, to, budget, preferences, safetyMode, language }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (!data.fallback) return data as DynamicAiPlan;
+      }
+    } catch (e) {
+      console.warn("AI plan API failed, using local generator:", e);
+    }
+  }
+
+  // Sanitize inputs for local fallback
+  from = String(from ?? "").replace(/[`"\\]/g, "").substring(0, 200);
+  to = String(to ?? "").replace(/[`"\\]/g, "").substring(0, 200);
 
   // Determine locations context
   const isKochi = from.toLowerCase().includes("kochi") || to.toLowerCase().includes("kochi") || 
@@ -293,34 +291,6 @@ export async function generateDynamicPlan(params: {
   // Default localized parameters
   const currencySymbol = "₹";
   const targetLangName = language === "hi" ? "Hindi (हिन्दी)" : language === "ml" ? "Malayalam (മലയാളം)" : "English";
-
-  if (genAI && !params.isOffline) {
-    try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-      const prompt = `You are FlowRoute AI, a smart travel companion.
-      Generate a travel plan from "${from}" to "${to}".
-      Budget constraint: ${currencySymbol}${budget}.
-      Preferences: ${preferences.join(", ")}.
-      Women's Safety Mode: ${safetyMode ? "ENABLED" : "DISABLED"}.
-      
-      CRITICAL: Write all user-facing text values (reasons, activities, descriptions, messages) in ${targetLangName}. Keep JSON keys strictly in English.
-      
-      Respond with a JSON containing:
-      1. "explainability": array of 5 explainability items (Shortest travel time, Wheelchair accessible, Safer roads, Lower cost, Lower carbon emissions). Each has: "label" (string - in ${targetLangName}), "checked" (boolean - does it fit?), and "reason" (string - short explanation why in ${targetLangName}).
-      2. "itinerary": array of 5 itinerary segments showing a structured travel experience including morning/afternoon/evening, food stop, tourist attraction, and rest stop. Each segment has: "time" (string), "activity" (string - in ${targetLangName}), "description" (string - in ${targetLangName}), "type" (one of "travel", "attraction", "food", "rest", "safety"), and "location" (string - in ${targetLangName}).
-      3. "aiSuggestions": array of 4 AI suggestion items matching the prompt with fields: "id" (string), "icon" (emoji), "category" (one of "accessibility", "weather", "health", "food", "safety", "time", "eco"), "message" (string - in ${targetLangName}), "severity" (one of "info", "warning", "tip").
-      4. "accessibilityScore": number (0 to 100) reflecting how suitable the route is for selected accessibility needs.
-      5. "safetyScore": number (0 to 100) reflecting safety factors.
-
-      Output strictly a JSON object with no wrapping markdown formatting.`;
-
-      const result = await model.generateContent(prompt);
-      const text = result.response.text().replace(/```json/g, "").replace(/```/g, "").trim();
-      return JSON.parse(text) as DynamicAiPlan;
-    } catch (e) {
-      console.warn("Gemini plan generation failed, falling back to local generator:", e);
-    }
-  }
 
   // Sophisticated Local plan generator fallback
   const explainability: ExplainabilityMetric[] = [

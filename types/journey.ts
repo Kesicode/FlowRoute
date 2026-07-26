@@ -20,7 +20,7 @@ export interface RouteSegment {
   to: string;
   duration: number; // minutes
   distance: number; // meters
-  fare: number; // GBP
+  fare: number; // INR (Indian Rupees)
   line?: string; // e.g. "Victoria Line"
   stops?: number;
   coordinates: [number, number][];
@@ -30,7 +30,7 @@ export interface JourneyRoute {
   id: string;
   name: string;
   tag: string; // e.g. "Fastest", "Eco", "Comfort"
-  tagColor: string;
+  tagColor: "cyan" | "green" | "purple" | "amber" | "red";
   totalTime: number; // minutes
   walkingTime: number; // minutes
   totalFare: number; // GBP

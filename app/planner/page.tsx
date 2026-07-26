@@ -66,9 +66,19 @@ export default function PlannerPage() {
     }
   }, [transcript]);
 
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const originAbortRef = useRef<AbortController | null>(null);
+  const destAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (navTimerRef.current) clearTimeout(navTimerRef.current);
+    };
+  }, []);
+
   // ─── Geocoding debounce ─────────────────────────────────────────────────
-  const originTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const destTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const originTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const destTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const handleOriginChange = (val: string) => {
     setOriginQuery(val);
@@ -78,7 +88,9 @@ export default function PlannerPage() {
     if (val.length >= 3) {
       setOriginLoading(true);
       originTimerRef.current = setTimeout(async () => {
-        const res = await searchLocations(val);
+        originAbortRef.current?.abort();
+        originAbortRef.current = new AbortController();
+        const res = await searchLocations(val, { signal: originAbortRef.current.signal });
         setOriginSuggestions(res);
         setOriginLoading(false);
       }, 400);
@@ -93,7 +105,9 @@ export default function PlannerPage() {
     if (val.length >= 3) {
       setDestLoading(true);
       destTimerRef.current = setTimeout(async () => {
-        const res = await searchLocations(val);
+        destAbortRef.current?.abort();
+        destAbortRef.current = new AbortController();
+        const res = await searchLocations(val, { signal: destAbortRef.current.signal });
         setDestSuggestions(res);
         setDestLoading(false);
       }, 400);
@@ -115,12 +129,17 @@ export default function PlannerPage() {
   };
 
   const swapLocations = () => {
-    const t = origin;
+    const tempLoc = origin;
     setOrigin(destination);
-    setDestination(t);
-    const tq = originQuery;
+    setDestination(tempLoc);
+    const tempQ = originQuery;
     setOriginQuery(destQuery);
-    setDestQuery(tq);
+    setDestQuery(tempQ);
+    // Clear suggestion panels
+    setOriginSuggestions([]);
+    setDestSuggestions([]);
+    setShowOriginPanel(false);
+    setShowDestPanel(false);
   };
 
   const togglePreference = (id: TravelPreference) => {
@@ -170,7 +189,7 @@ export default function PlannerPage() {
       setSelectedAccessibility(accessMapped);
 
       // Trigger routing search immediately after brief delay for visual feedback
-      setTimeout(() => {
+      navTimerRef.current = setTimeout(() => {
         setIsSearching(true);
         const params = new URLSearchParams({
           from: parsed.from || "Kochi Airport",
@@ -221,18 +240,18 @@ export default function PlannerPage() {
       localStorage.setItem("flowroute_history", JSON.stringify(list.slice(0, 10)));
     }
 
-    setTimeout(() => {
+    navTimerRef.current = setTimeout(() => {
       router.push(`/journey?${params.toString()}`);
     }, 1000);
   };
 
   const accessibilityOptions = [
-    { id: "wheelchair", label: language === "en" ? "Wheelchair User" : language === "hi" ? "व्हीलचेयर उपयोगकर्ता" : "വീൽചെയർ ഉപയോക്താവ്", emoji: "♿" },
-    { id: "elderly", label: language === "en" ? "Elderly" : language === "hi" ? "बुजुर्ग" : "മുതിർന്ന പൗരന്മാർ", emoji: "👵" },
-    { id: "lowvision", label: language === "en" ? "Low Vision" : language === "hi" ? "कम दृष्टि" : "കാഴ്ചക്കുറവ്", emoji: "👁️" },
-    { id: "hearing", label: language === "en" ? "Hearing Impaired" : language === "hi" ? "श्रवण बाधित" : "ശ്രവണ വൈകല്യം", emoji: "👂" },
-    { id: "pregnant", label: language === "en" ? "Pregnant" : language === "hi" ? "गर्भवती" : "ഗർഭിണികൾ", emoji: "🤰" },
-    { id: "child", label: language === "en" ? "Child Friendly" : language === "hi" ? "बच्चों के अनुकूल" : "കുട്ടികൾക്ക് അനുയോജ്യം", emoji: "👶" },
+    { id: "wheelchair", label: t("wheelchairUser", language), emoji: "♿" },
+    { id: "elderly", label: t("elderlyLabel", language), emoji: "👵" },
+    { id: "lowvision", label: t("lowVision", language), emoji: "👁️" },
+    { id: "hearing", label: t("hearingImpaired", language), emoji: "👂" },
+    { id: "pregnant", label: t("pregnant", language), emoji: "🤰" },
+    { id: "child", label: t("childFriendly", language), emoji: "👶" },
   ];
 
   return (
@@ -251,7 +270,7 @@ export default function PlannerPage() {
                 : "bg-transparent border-transparent text-slate-500 hover:text-slate-300"
             }`}
           >
-            📋 {language === "en" ? "Manual Planner" : language === "hi" ? "मैन्युअल योजक" : "മാനുവൽ പ്ലാനർ"}
+            📋 {t("manualPlanner", language)}
           </button>
           <button
             onClick={() => setPlannerMode("ai")}
@@ -262,7 +281,7 @@ export default function PlannerPage() {
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            {language === "en" ? "Ask AI Assistant" : language === "hi" ? "एआई सहायक से पूछें" : "എഐ അസിസ്റ്റന്റ്"}
+            {t("askAiAssistant", language)}
           </button>
         </div>
 
@@ -280,12 +299,18 @@ export default function PlannerPage() {
                 {/* ─── Location Inputs ─────────────────────────────────────── */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-                    {language === "en" ? "Route Parameters" : language === "hi" ? "मार्ग पैरामीटर" : "വഴി വിവരങ്ങൾ"}
+                    {t("routeParameters", language)}
                   </label>
                   <div className="relative">
-                    <MapPin className="absolute left-3.5 top-3.5 w-4 h-4 text-brand-cyan z-10" />
+                    <label htmlFor="origin-input" className="sr-only">Origin location</label>
+                    <MapPin className="absolute left-3.5 top-3.5 w-4 h-4 text-brand-cyan z-10" aria-hidden="true" />
                     <input
+                      id="origin-input"
                       type="text"
+                      aria-label={t("fromPlaceholder", language)}
+                      aria-autocomplete="list"
+                      aria-expanded={showOriginPanel && originSuggestions.length > 0}
+                      aria-controls="origin-suggestions"
                       placeholder={t("fromPlaceholder", language)}
                       value={originQuery}
                       onChange={(e) => handleOriginChange(e.target.value)}
@@ -293,20 +318,24 @@ export default function PlannerPage() {
                       className="w-full bg-black/40 border border-white/8 focus:border-brand-cyan/50 rounded-xl pl-11 pr-9 py-3 text-sm text-slate-200 placeholder-slate-500 outline-none transition-colors"
                     />
                     {originQuery && (
-                      <button onClick={() => { setOriginQuery(""); setOrigin(null); }} className="absolute right-3 top-3.5 text-slate-500 hover:text-white">
-                        <X className="w-4 h-4" />
+                      <button 
+                        onClick={() => { setOriginQuery(""); setOrigin(null); }} 
+                        aria-label={t("clearOrigin", language)}
+                        className="absolute right-3 top-3.5 text-slate-500 hover:text-white"
+                      >
+                        <X className="w-4 h-4" aria-hidden="true" />
                       </button>
                     )}
                     <AnimatePresence>
                       {showOriginPanel && (originSuggestions.length > 0 || originLoading) && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
+                        <motion.div id="origin-suggestions" role="listbox" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
                           className="absolute left-0 right-0 mt-1.5 p-2 rounded-xl bg-slate-900 border border-white/10 shadow-2xl z-30 max-h-52 overflow-y-auto">
                           {originLoading ? (
                             <div className="flex items-center justify-center py-3 gap-2 text-xs text-slate-400">
                               <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-cyan" /> Searching...
                             </div>
                           ) : originSuggestions.map((loc, i) => (
-                            <button key={i} onClick={() => selectOrigin(loc)}
+                            <button key={i} role="option" aria-selected={false} onClick={() => selectOrigin(loc)}
                               className="w-full text-left p-2.5 rounded-lg hover:bg-white/5 text-xs text-slate-300 hover:text-white transition-colors">
                               <span className="font-semibold block">{loc.name}</span>
                               <span className="text-[10px] text-slate-500 truncate block">{loc.displayName}</span>
@@ -319,16 +348,22 @@ export default function PlannerPage() {
 
                   {/* Swap button */}
                   <div className="flex items-center justify-center">
-                    <button onClick={swapLocations}
+                    <button onClick={swapLocations} aria-label={t("swapLocations", language)}
                       className="p-2 rounded-xl bg-white/5 border border-white/8 hover:bg-brand-cyan/10 hover:border-brand-cyan/30 text-slate-500 hover:text-brand-cyan transition-all">
-                      <ArrowRightLeft className="w-3.5 h-3.5" />
+                      <ArrowRightLeft className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
                   </div>
 
                   <div className="relative">
-                    <Navigation className="absolute left-3.5 top-3.5 w-4 h-4 text-brand-blue z-10" />
+                    <label htmlFor="dest-input" className="sr-only">Destination location</label>
+                    <Navigation className="absolute left-3.5 top-3.5 w-4 h-4 text-brand-blue z-10" aria-hidden="true" />
                     <input
+                      id="dest-input"
                       type="text"
+                      aria-label={t("toPlaceholder", language)}
+                      aria-autocomplete="list"
+                      aria-expanded={showDestPanel && destSuggestions.length > 0}
+                      aria-controls="dest-suggestions"
                       placeholder={t("toPlaceholder", language)}
                       value={destQuery}
                       onChange={(e) => handleDestChange(e.target.value)}
@@ -336,20 +371,24 @@ export default function PlannerPage() {
                       className="w-full bg-black/40 border border-white/8 focus:border-brand-blue/50 rounded-xl pl-11 pr-9 py-3 text-sm text-slate-200 placeholder-slate-500 outline-none transition-colors"
                     />
                     {destQuery && (
-                      <button onClick={() => { setDestQuery(""); setDestination(null); }} className="absolute right-3 top-3.5 text-slate-500 hover:text-white">
-                        <X className="w-4 h-4" />
+                      <button 
+                        onClick={() => { setDestQuery(""); setDestination(null); }} 
+                        aria-label={t("clearDestination", language)}
+                        className="absolute right-3 top-3.5 text-slate-500 hover:text-white"
+                      >
+                        <X className="w-4 h-4" aria-hidden="true" />
                       </button>
                     )}
                     <AnimatePresence>
                       {showDestPanel && (destSuggestions.length > 0 || destLoading) && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
+                        <motion.div id="dest-suggestions" role="listbox" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
                           className="absolute left-0 right-0 mt-1.5 p-2 rounded-xl bg-slate-900 border border-white/10 shadow-2xl z-30 max-h-52 overflow-y-auto">
                           {destLoading ? (
                             <div className="flex items-center justify-center py-3 gap-2 text-xs text-slate-400">
                               <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-blue" /> Searching...
                             </div>
                           ) : destSuggestions.map((loc, i) => (
-                            <button key={i} onClick={() => selectDestination(loc)}
+                            <button key={i} role="option" aria-selected={false} onClick={() => selectDestination(loc)}
                               className="w-full text-left p-2.5 rounded-lg hover:bg-white/5 text-xs text-slate-300 hover:text-white transition-colors">
                               <span className="font-semibold block">{loc.name}</span>
                               <span className="text-[10px] text-slate-500 truncate block">{loc.displayName}</span>
@@ -453,7 +492,7 @@ export default function PlannerPage() {
                     onClick={() => setSafetyMode(!safetyMode)}
                     className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border transition-all duration-300 text-left ${
                       safetyMode
-                        ? "bg-fuchsia-500/10 border-fuchsia-500/30 text-fuchsia-400 shadow-[0_0_15px_rgba(217,70,239,0.1)]"
+                        ? "bg-fuchsia-500/10 border-fuchsia-500/30 text-fuchsia-400 shadow-md"
                         : "bg-black/25 border-white/8 text-slate-400 hover:border-white/15"
                     }`}
                   >
@@ -500,7 +539,7 @@ export default function PlannerPage() {
                 <button
                   onClick={handleSearch}
                   disabled={isSearching}
-                  className="w-full py-3.5 rounded-2xl text-sm font-bold text-background bg-brand-cyan hover:bg-brand-cyan/90 hover:shadow-[0_0_24px_rgba(0,242,254,0.35)] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-70 mt-2"
+                  className="w-full py-3.5 rounded-2xl text-sm font-bold text-background bg-brand-cyan hover:bg-brand-cyan/90 hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-70 mt-2"
                 >
                   {isSearching ? (
                     <>
@@ -527,9 +566,9 @@ export default function PlannerPage() {
                 {/* AI Textarea */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
-                    💬 Describe Your Perfect Journey
+                    💬 {t("describeJourney", language)}
                   </label>
-                  <div className="relative glass-card rounded-2xl border border-white/10 overflow-hidden bg-black/40">
+                  <div className="relative card rounded-2xl border border-white/10 overflow-hidden bg-black/40">
                     <textarea
                       rows={5}
                       value={aiPrompt}
@@ -558,6 +597,7 @@ export default function PlannerPage() {
                         <button
                           onClick={() => startListening(language)}
                           className="p-2.5 rounded-xl bg-brand-cyan/20 border border-brand-cyan/30 text-brand-cyan hover:bg-brand-cyan hover:text-slate-950 transition-colors"
+                          aria-label={t("voiceBtnTooltip", language)}
                           title={t("voiceBtnTooltip", language)}
                         >
                           <Mic className="w-4 h-4" />
@@ -566,7 +606,7 @@ export default function PlannerPage() {
                     </div>
                   </div>
                   {isListening && (
-                    <span className="text-[10px] text-brand-cyan animate-pulse px-1 block font-medium">
+                    <span role="status" aria-live="polite" className="text-[10px] text-brand-cyan animate-pulse px-1 block font-medium">
                       🎙️ {t("speakNow", language)}
                     </span>
                   )}
@@ -576,11 +616,8 @@ export default function PlannerPage() {
                 <div className="p-3.5 rounded-2xl bg-brand-cyan/5 border border-brand-cyan/10 text-[10px] text-slate-400 leading-normal flex gap-2.5">
                   <Sparkles className="w-4 h-4 text-brand-cyan shrink-0 mt-0.5 animate-pulse" />
                   <div>
-                    <span className="font-bold text-white block mb-0.5">What the AI Companion Understands:</span>
-                    • Destination coordinates geocoding<br />
-                    • Accessibility modes (Wheelchair, Stroller friendly)<br />
-                    • Financial constraints (Budget checks)<br />
-                    • Weather and safety overrides
+                    <span className="font-bold text-white block mb-0.5">{t("aiCompanionTitle", language)}</span>
+                    {t("aiCompanionDesc", language)}
                   </div>
                 </div>
 
@@ -588,17 +625,17 @@ export default function PlannerPage() {
                 <button
                   onClick={handleAiPlan}
                   disabled={isAiParsing || !aiPrompt.trim()}
-                  className="w-full py-4 rounded-2xl text-sm font-bold text-slate-950 bg-gradient-to-r from-brand-cyan via-brand-blue to-brand-cyan bg-[length:200%] animate-[gradient_4s_linear_infinite] hover:shadow-[0_0_24px_rgba(0,242,254,0.4)] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-60"
+                  className="w-full py-4 rounded-2xl text-sm font-bold text-slate-950 bg-gradient-to-r from-brand-cyan via-brand-blue to-brand-cyan bg-[length:200%] animate-[gradient_4s_linear_infinite] hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-60"
                 >
                   {isAiParsing ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
-                      Parsing Query & Fetching Maps...
+                      {t("parsingQuery", language)}
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />
-                      Let AI Plan My Route
+                      {t("letAiPlan", language)}
                     </>
                   )}
                 </button>

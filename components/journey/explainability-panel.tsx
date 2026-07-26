@@ -46,7 +46,7 @@ export function ExplainabilityPanel({ metrics }: ExplainabilityPanelProps) {
   return (
     <div className="space-y-4">
       {/* Radar Chart Visual */}
-      <div className="glass-card p-4 rounded-2xl border border-white/5 bg-black/10 flex flex-col items-center">
+      <div className="card p-4 rounded-2xl border border-white/5 bg-black/10 flex flex-col items-center">
         <h4 className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider self-start">
           Assistive Suitability Audit
         </h4>
@@ -77,7 +77,7 @@ export function ExplainabilityPanel({ metrics }: ExplainabilityPanelProps) {
         </div>
         <button
           onClick={speakText}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-cyan text-slate-950 hover:bg-brand-cyan/90 transition-all hover:shadow-[0_0_12px_rgba(0,242,254,0.3)]"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-cyan text-slate-950 hover:bg-brand-cyan/90 transition-all hover:shadow-md"
         >
           <Volume2 className="w-3.5 h-3.5" />
           Read Audio Audit

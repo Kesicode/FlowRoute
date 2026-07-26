@@ -24,7 +24,7 @@ export function CarbonPanel({ carbon }: CarbonPanelProps) {
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-2xl p-5 border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent"
+        className="card rounded-2xl p-5 border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent"
       >
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -54,7 +54,7 @@ export function CarbonPanel({ carbon }: CarbonPanelProps) {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="glass-card rounded-2xl p-5 border border-white/5"
+        className="card rounded-2xl p-5 border border-white/5"
       >
         <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">CO₂ by Transport Mode</h3>
         <ResponsiveContainer width="100%" height={200}>

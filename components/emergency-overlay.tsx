@@ -73,7 +73,7 @@ export default function EmergencyOverlay() {
           initial={{ scale: 0.9, y: 20 }}
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.9, y: 20 }}
-          className="relative max-w-lg w-full glass-panel-heavy rounded-3xl p-6 border border-red-500/30 shadow-[0_0_50px_rgba(239,68,68,0.2)] text-center overflow-hidden"
+          className="relative max-w-lg w-full card rounded-3xl p-6 border border-red-500/30 shadow-md text-center overflow-hidden"
         >
           {/* Close button */}
           <button
@@ -96,7 +96,7 @@ export default function EmergencyOverlay() {
           </p>
 
           {/* Location details */}
-          <div className="glass-card rounded-2xl p-4 border border-white/5 mb-6 text-left flex items-center justify-between gap-3">
+          <div className="card rounded-2xl p-4 border border-white/5 mb-6 text-left flex items-center justify-between gap-3">
             <div className="min-w-0">
               <span className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">My Current Coordinates</span>
               <p className="text-sm text-white font-medium truncate flex items-center gap-1">
@@ -159,7 +159,7 @@ export default function EmergencyOverlay() {
                 {nearestHospitals.map((hosp) => (
                   <div
                     key={hosp.id}
-                    className="flex items-center gap-3 p-3 glass-card rounded-xl border border-white/5 text-left hover:border-red-500/20 transition-colors"
+                    className="flex items-center gap-3 p-3 card rounded-xl border border-white/5 text-left hover:border-red-500/20 transition-colors"
                   >
                     <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
                       <Hospital className="w-4 h-4" />

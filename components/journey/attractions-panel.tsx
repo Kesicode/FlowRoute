@@ -21,7 +21,7 @@ export function AttractionsPanel({ attractions }: AttractionsPanelProps) {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.06 }}
-          className="glass-card rounded-2xl p-4 border border-white/5 hover:border-brand-cyan/20 transition-all group flex gap-3.5"
+          className="card rounded-2xl p-4 border border-white/5 hover:border-brand-cyan/20 transition-all group flex gap-3.5"
         >
           <span className="text-3xl shrink-0 self-start mt-0.5">{attr.emoji || "📍"}</span>
           <div className="flex-grow min-w-0">

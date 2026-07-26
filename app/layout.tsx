@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import "./globals.css";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
@@ -12,13 +13,16 @@ export const metadata: Metadata = {
   authors: [{ name: "FlowRoute Team" }],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const lang = cookieStore.get("flowroute_lang")?.value ?? "en";
+  const validLang = ["en", "hi", "ml"].includes(lang) ? lang : "en";
   return (
-    <html lang="en" className="dark h-full">
+    <html lang={validLang} className="dark h-full">
       <body className="min-h-screen bg-background text-foreground antialiased flex flex-col font-sans overflow-x-hidden selection:bg-primary/20 selection:text-primary">
         <SettingsProvider>
           <Navbar />

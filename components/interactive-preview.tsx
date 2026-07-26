@@ -96,7 +96,7 @@ export default function InteractivePreview() {
   const activeRoute = routes.find((r) => r.id === selectedRoute) || routes[1];
 
   return (
-    <div className="w-full max-w-5xl mx-auto rounded-3xl overflow-hidden glass-panel border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+    <div className="w-full max-w-5xl mx-auto rounded-3xl overflow-hidden card border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
       <div className="grid grid-cols-1 lg:grid-cols-12">
         
         {/* Left Control Panel */}
@@ -167,7 +167,7 @@ export default function InteractivePreview() {
                     onClick={() => setPreference(pref)}
                     className={`py-2 px-3 text-xs font-semibold rounded-xl capitalize border transition-all duration-300 ${
                       preference === pref
-                        ? "bg-brand-cyan text-background border-brand-cyan shadow-[0_0_15px_rgba(0,242,254,0.25)]"
+                        ? "bg-brand-cyan text-background border-brand-cyan shadow-md"
                         : "bg-white/5 border-white/5 hover:border-white/10 text-slate-300 hover:text-white"
                     }`}
                   >
@@ -192,7 +192,7 @@ export default function InteractivePreview() {
                     onClick={() => setSelectedRoute(route.id)}
                     className={`w-full text-left p-4 rounded-2xl border transition-all duration-300 flex items-center justify-between group ${
                       isSelected
-                        ? "bg-white/5 border-brand-cyan/50 shadow-[0_0_20px_rgba(0,242,254,0.05)]"
+                        ? "bg-white/5 border-brand-cyan/50 shadow-md"
                         : "bg-black/20 border-white/5 hover:border-white/10"
                     }`}
                   >

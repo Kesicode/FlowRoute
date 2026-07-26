@@ -1,4 +1,4 @@
-import { Essential, FoodStop, Attraction, EssentialType } from "@/types/journey";
+import { Essential, FoodStop, Attraction } from "@/types/journey";
 
 // Helper for geographical distance in meters
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -100,7 +100,25 @@ export async function fetchNearbyPlaces(
       return getDistance(lat, lng, elLat, elLng);
     };
 
-    elements.forEach((el: any) => {
+    interface OverpassElement {
+      id: number;
+      lat?: number;
+      lon?: number;
+      tags?: {
+        name?: string;
+        operator?: string;
+        amenity?: string;
+        tourism?: string;
+        cuisine?: string;
+        opening_hours?: string;
+        description?: string;
+        "addr:street"?: string;
+        "addr:city"?: string;
+        [key: string]: string | undefined;
+      };
+    }
+
+    elements.forEach((el: OverpassElement) => {
       const elLat = el.lat;
       const elLng = el.lon;
       if (!elLat || !elLng) return;
@@ -173,7 +191,7 @@ export async function fetchNearbyPlaces(
           openNow: true,
           coordinate: [elLat, elLng],
         });
-      } else if (["restaurant", "cafe", "fast_food"].includes(amenity)) {
+      } else if (amenity && ["restaurant", "cafe", "fast_food"].includes(amenity)) {
         const typeMap: Record<string, "restaurant" | "cafe" | "fastfood"> = {
           restaurant: "restaurant",
           cafe: "cafe",
@@ -183,7 +201,7 @@ export async function fetchNearbyPlaces(
           id: `food-${el.id}`,
           name,
           cuisine: el.tags?.cuisine || (amenity === "cafe" ? "Beverages & Desserts" : "Multi-Cuisine"),
-          type: typeMap[amenity] || "restaurant",
+          type: typeMap[amenity] ?? "restaurant",
           rating: parseFloat((3.8 + Math.random() * 1.1).toFixed(1)),
           priceRange: Math.random() > 0.6 ? "₹₹₹" : Math.random() > 0.3 ? "₹₹" : "₹",
           estimatedCost: Math.random() > 0.6 ? 1200 : Math.random() > 0.3 ? 600 : 250,
@@ -193,7 +211,7 @@ export async function fetchNearbyPlaces(
           highlights: el.tags?.cuisine ? [el.tags.cuisine, "Highly Rated"] : ["Local Favorite", "Fresh Ingredients"],
           coordinate: [elLat, elLng],
         });
-      } else if (["attraction", "museum", "viewpoint"].includes(tourism)) {
+      } else if (tourism && ["attraction", "museum", "viewpoint"].includes(tourism)) {
         const catMap: Record<string, string> = {
           attraction: "Sightseeing",
           museum: "Museum",
@@ -207,7 +225,7 @@ export async function fetchNearbyPlaces(
         attractions.push({
           id: `attr-${el.id}`,
           name,
-          category: catMap[tourism] || "Landmark",
+          category: catMap[tourism] ?? "Landmark",
           rating: parseFloat((4.0 + Math.random() * 0.9).toFixed(1)),
           distance: dist,
           description: el.tags?.description || "Popular destination for tourists and locals offering unique photo opportunities.",
@@ -215,7 +233,7 @@ export async function fetchNearbyPlaces(
           free: Math.random() > 0.5,
           entryFee: Math.random() > 0.5 ? Math.round(50 + Math.random() * 300) : undefined,
           coordinate: [elLat, elLng],
-          emoji: emojis[tourism] || "📍",
+          emoji: emojis[tourism] ?? "📍",
         });
       }
     });

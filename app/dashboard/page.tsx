@@ -137,7 +137,7 @@ export default function DashboardPage() {
           </div>
           <Link
             href="/planner"
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-cyan text-background font-semibold text-sm hover:bg-brand-cyan/90 hover:shadow-[0_0_20px_rgba(0,242,254,0.35)] transition-all duration-300 self-start sm:self-auto"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-cyan text-background font-semibold text-sm hover:bg-brand-cyan/90 hover:shadow-md transition-all duration-300 self-start sm:self-auto"
           >
             <Sparkles className="w-4 h-4" />
             {language === "en" ? "Plan New Journey" : language === "hi" ? "नई यात्रा जोड़ें" : "യാത്ര പ്ലാൻ ചെയ്യൂ"}
@@ -160,7 +160,7 @@ export default function DashboardPage() {
             const localizedLabel = labelKeys[stat.label] || stat.label;
             
             return (
-              <div key={stat.label} className="glass-card rounded-2xl p-4 border border-white/5 text-center flex flex-col justify-between">
+              <div key={stat.label} className="card rounded-2xl p-4 border border-white/5 text-center flex flex-col justify-between">
                 <div className="text-2xl mb-2">{stat.icon}</div>
                 <div>
                   <div className="text-xl font-bold text-white font-display">{stat.value}</div>
@@ -174,7 +174,7 @@ export default function DashboardPage() {
 
         {/* Safety & Accessibility Score Card */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="glass-card rounded-2xl p-5 border border-fuchsia-500/10 bg-gradient-to-br from-fuchsia-500/5 to-transparent flex items-center justify-between">
+          <div className="card rounded-2xl p-5 border border-fuchsia-500/10 bg-gradient-to-br from-fuchsia-500/5 to-transparent flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-400">
                 <Shield className="w-6 h-6 animate-pulse" />
@@ -187,7 +187,7 @@ export default function DashboardPage() {
             <div className="text-3xl font-extrabold text-fuchsia-400 font-display">94%</div>
           </div>
 
-          <div className="glass-card rounded-2xl p-5 border border-emerald-500/10 bg-gradient-to-br from-emerald-500/5 to-transparent flex items-center justify-between">
+          <div className="card rounded-2xl p-5 border border-emerald-500/10 bg-gradient-to-br from-emerald-500/5 to-transparent flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                 <Accessibility className="w-6 h-6" />
@@ -204,7 +204,7 @@ export default function DashboardPage() {
         {/* Charts Row */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Budget chart */}
-          <div className="glass-card rounded-2xl p-5 border border-white/5">
+          <div className="card rounded-2xl p-5 border border-white/5">
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="w-4 h-4 text-brand-cyan" />
               <h2 className="font-display font-semibold text-white">Monthly Budget Comparison</h2>
@@ -226,7 +226,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Carbon chart */}
-          <div className="glass-card rounded-2xl p-5 border border-white/5">
+          <div className="card rounded-2xl p-5 border border-white/5">
             <div className="flex items-center gap-2 mb-4">
               <Leaf className="w-4 h-4 text-emerald-400" />
               <h2 className="font-display font-semibold text-white">Monthly carbon (CO₂) Footprint</h2>
@@ -273,7 +273,7 @@ export default function DashboardPage() {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="glass-card rounded-2xl p-4 border border-white/5 flex items-center gap-3 hover:border-white/10 transition-all group"
+                  className="card rounded-2xl p-4 border border-white/5 flex items-center gap-3 hover:border-white/10 transition-all group"
                 >
                   <div className={`p-2.5 rounded-xl ${colorClass}`}>
                     <Icon className="w-4 h-4" />
@@ -318,7 +318,7 @@ export default function DashboardPage() {
               >
                 <Link
                   href={`/planner`}
-                  className="glass-card rounded-2xl p-4 border border-white/5 hover:border-brand-cyan/30 flex flex-col items-center text-center gap-2 block transition-all duration-300"
+                  className="card rounded-2xl p-4 border border-white/5 hover:border-brand-cyan/30 flex flex-col items-center text-center gap-2 block transition-all duration-300"
                 >
                   <span className="text-3xl">{dest.emoji}</span>
                   <div>
@@ -335,7 +335,7 @@ export default function DashboardPage() {
         {/* Carbon Savings Summary Banner */}
         <motion.div
           variants={itemVariants}
-          className="glass-card rounded-2xl p-5 border border-emerald-500/20 bg-gradient-to-r from-emerald-500/5 to-transparent flex flex-col sm:flex-row items-center gap-4"
+          className="card rounded-2xl p-5 border border-emerald-500/20 bg-gradient-to-r from-emerald-500/5 to-transparent flex flex-col sm:flex-row items-center gap-4"
         >
           <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 shrink-0">
             <Leaf className="w-8 h-8 text-emerald-400" />

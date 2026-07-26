@@ -40,9 +40,9 @@ const tagColors: Record<string, string> = {
 // Route index → color
 const ROUTE_ACCENT_COLORS = ["border-brand-cyan/50", "border-brand-blue/50", "border-purple-500/50"];
 const ROUTE_GLOW_COLORS   = [
-  "shadow-[0_0_28px_rgba(0,242,254,0.18)]",
-  "shadow-[0_0_28px_rgba(79,172,254,0.18)]",
-  "shadow-[0_0_28px_rgba(168,85,247,0.18)]",
+  "shadow-md",
+  "shadow-md",
+  "shadow-md",
 ];
 
 interface RoutePanelProps {
@@ -111,7 +111,7 @@ export function RoutePanel({
             onClick={() => onRouteSelect?.(route)}
             onMouseEnter={() => onRouteHover?.(route)}
             onMouseLeave={() => onRouteHover?.(null)}
-            className={`glass-card rounded-2xl p-5 border cursor-pointer transition-all duration-300 ${
+            className={`card rounded-2xl p-5 border cursor-pointer transition-all duration-300 ${
               isSelected
                 ? `${ROUTE_ACCENT_COLORS[i % ROUTE_ACCENT_COLORS.length]} ${ROUTE_GLOW_COLORS[i % ROUTE_GLOW_COLORS.length]} scale-[1.01]`
                 : "border-white/5 hover:border-white/15"

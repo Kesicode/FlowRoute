@@ -19,7 +19,7 @@ export function WeatherPanel({ weather }: WeatherPanelProps) {
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-2xl p-5 border border-brand-blue/20 bg-gradient-to-br from-brand-blue/5 to-transparent"
+        className="card rounded-2xl p-5 border border-brand-blue/20 bg-gradient-to-br from-brand-blue/5 to-transparent"
       >
         <div className="flex items-start justify-between mb-5">
           <div>
@@ -71,7 +71,7 @@ export function WeatherPanel({ weather }: WeatherPanelProps) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="glass-card rounded-2xl p-4 border border-white/5"
+          className="card rounded-2xl p-4 border border-white/5"
         >
           <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">5-Day Forecast</h3>
           <div className="grid grid-cols-5 gap-2">
@@ -95,7 +95,7 @@ export function WeatherPanel({ weather }: WeatherPanelProps) {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="flex items-start gap-3 p-4 rounded-2xl glass-card border border-white/5"
+        className="flex items-start gap-3 p-4 rounded-2xl card border border-white/5"
       >
         <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20">
           <Shirt className="w-4 h-4 text-purple-400" />

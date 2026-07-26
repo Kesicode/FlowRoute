@@ -1,10 +1,29 @@
 import { Location } from "@/types/planner";
 
+interface NominatimResult {
+  lat: string;
+  lon: string;
+  name: string;
+  display_name: string;
+  address?: {
+    road?: string;
+    suburb?: string;
+    neighbourhood?: string;
+    city?: string;
+    town?: string;
+    municipality?: string;
+    country?: string;
+  };
+}
+
 /**
  * Searches locations using the OpenStreetMap Nominatim Geocoding API.
  * Nominatim usage policy requires a valid User-Agent header identifying the app.
  */
-export async function searchLocations(query: string): Promise<Location[]> {
+export async function searchLocations(
+  query: string,
+  options?: { signal?: AbortSignal }
+): Promise<Location[]> {
   if (!query || query.trim().length < 3) {
     return [];
   }
@@ -18,6 +37,7 @@ export async function searchLocations(query: string): Promise<Location[]> {
         headers: {
           "User-Agent": "FlowRoute-AI-Mobility-OS/1.0 (adwGlitch/codex)",
         },
+        signal: options?.signal,
       }
     );
 
@@ -31,7 +51,7 @@ export async function searchLocations(query: string): Promise<Location[]> {
       return [];
     }
 
-    return data.map((item: any) => {
+    return data.map((item: NominatimResult) => {
       // Build a user-friendly name from parts of the address
       const addr = item.address || {};
       const primaryName =
