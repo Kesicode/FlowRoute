@@ -1,4 +1,5 @@
 import { Essential, FoodStop, Attraction } from "@/types/journey";
+import { cachedSource } from "@/lib/source-cache";
 
 // Helper for geographical distance in meters
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -29,12 +30,44 @@ function sampleRouteCoords(routeGeometry: [number, number][], count: number = 6)
   return result;
 }
 
+const OVERPASS_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+type OverpassResult = { essentials: Essential[]; foodStops: FoodStop[]; attractions: Attraction[] };
+
 export async function fetchNearbyPlaces(
   lat: number,
   lng: number,
   radius: number = 2000,
   routeGeometry: [number, number][] = []
 ): Promise<{ essentials: Essential[]; foodStops: FoodStop[]; attractions: Attraction[] }> {
+  // Cache key: round to 0.01° (~1 km) to reuse results for nearby requests
+  const cacheKey = `overpass:${lat.toFixed(2)}_${lng.toFixed(2)}_${radius}`;
+  const cached = cachedSource<OverpassResult>(
+    cacheKey,
+    () => _fetchNearbyPlacesUncached(lat, lng, radius, routeGeometry),
+    OVERPASS_TTL_MS
+  );
+  const results = await cached();
+  return results[0] ?? { essentials: [], foodStops: [], attractions: [] };
+}
+
+async function _fetchNearbyPlacesUncached(
+  lat: number,
+  lng: number,
+  radius: number = 2000,
+  routeGeometry: [number, number][] = []
+): Promise<OverpassResult[]> {
+  const result = await _fetchNearbyPlacesCore(lat, lng, radius, routeGeometry);
+  return [result];
+}
+
+async function _fetchNearbyPlacesCore(
+  lat: number,
+  lng: number,
+  radius: number = 2000,
+  routeGeometry: [number, number][] = []
+): Promise<OverpassResult> {
+
   try {
     let query = `[out:json][timeout:15];\n(\n`;
     const pointsToQuery: [number, number][] = [];

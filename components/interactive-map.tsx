@@ -161,6 +161,7 @@ export default function InteractiveMap({
   const [isDarkMode,      setIsDarkMode]       = useState(true);
   const [mapInstance,     setMapInstance]      = useState<L.Map | null>(null);
   const [isLocating,      setIsLocating]       = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [userLocation,    setUserLocation]     = useState<[number, number] | null>(null);
 
   useEffect(() => {

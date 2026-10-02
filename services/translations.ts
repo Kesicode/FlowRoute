@@ -121,7 +121,20 @@ export const translations = {
     lowVision: "Low Vision",
     hearingImpaired: "Hearing Impaired",
     pregnant: "Pregnant",
-    childFriendly: "Child Friendly"
+    childFriendly: "Child Friendly",
+    // FlowRoute v2 keys
+    journey_health_on_track: "On Track",
+    journey_health_at_risk: "At Risk",
+    journey_health_delayed: "Delayed",
+    journey_health_action_required: "Action Required",
+    journey_health_completed: "Completed",
+    discovery_mode_off: "Off",
+    discovery_mode_balanced: "Balanced",
+    discovery_mode_active: "Active",
+    estimated_disclaimer: "Estimated — real costs may vary",
+    accommodation_demo_notice: "Demo data — not real availability",
+    departure_date: "Departure Date",
+    return_date: "Return Date"
   },
   hi: {
     logoName: "फ्लोरूट",
@@ -243,7 +256,20 @@ export const translations = {
     lowVision: "कम दृष्टि",
     hearingImpaired: "श्रवण बाधित",
     pregnant: "गर्भवती",
-    childFriendly: "बच्चों के अनुकूल"
+    childFriendly: "बच्चों के अनुकूल",
+    // FlowRoute v2 keys
+    journey_health_on_track: "सुचारू",
+    journey_health_at_risk: "जोखिम में",
+    journey_health_delayed: "विलंबित",
+    journey_health_action_required: "कार्रवाई आवश्यक",
+    journey_health_completed: "पूर्ण",
+    discovery_mode_off: "बंद",
+    discovery_mode_balanced: "संतुलित",
+    discovery_mode_active: "सक्रिय",
+    estimated_disclaimer: "अनुमानित — वास्तविक लागत भिन्न हो सकती है",
+    accommodation_demo_notice: "डेमो डेटा",
+    departure_date: "प्रस्थान तिथि",
+    return_date: "वापसी तिथि"
   },
   ml: {
     logoName: "ഫ്ലോറൂട്ട്",
@@ -365,9 +391,23 @@ export const translations = {
     lowVision: "കാഴ്ചക്കുറവ്",
     hearingImpaired: "ശ്രവണ വൈകല്യം",
     pregnant: "ഗർഭിണികൾ",
-    childFriendly: "കുട്ടികൾക്ക് അനുയോജ്യം"
+    childFriendly: "കുട്ടികൾക്ക് അനുയോജ്യം",
+    // FlowRoute v2 keys
+    journey_health_on_track: "ശരിയായ നിലയിൽ",
+    journey_health_at_risk: "അപകടത്തിൽ",
+    journey_health_delayed: "വൈകി",
+    journey_health_action_required: "നടപടി ആവശ്യം",
+    journey_health_completed: "പൂർത്തിയായി",
+    discovery_mode_off: "ഓഫ്",
+    discovery_mode_balanced: "സന്തുലിതം",
+    discovery_mode_active: "സജീവം",
+    estimated_disclaimer: "ഒഴുക്ക് — യഥാർത്ഥ ചെലവ് വ്യത്യാസപ്പെടാം",
+    accommodation_demo_notice: "ഡെമോ ഡേറ്റ",
+    departure_date: "പുറപ്പെടൽ തീയതി",
+    return_date: "മടങ്ങൽ തീയതി"
   }
 };
+
 
 export function t(key: keyof typeof translations.en, lang: Language): string {
   const dict = translations[lang] || translations.en;

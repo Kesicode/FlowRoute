@@ -1,6 +1,30 @@
 // ─── Journey Types ──────────────────────────────────────────────────────────
 
-export type TransportMode = "walk" | "bus" | "metro" | "train" | "tram" | "taxi" | "bike";
+export type TransportMode =
+  | "walk"
+  | "bus"
+  | "metro"
+  | "train"
+  | "tram"
+  | "taxi"
+  | "bike"
+  // Phase 1 additions — multi-modal long-distance travel
+  | "airplane"
+  | "ferry"
+  | "car"
+  | "rideshare"
+  | "bicycle"
+  | "motorcycle";
+
+/** Lifecycle state of a single journey segment during an active trip. */
+export type JourneySegmentStatus =
+  | "scheduled"
+  | "active"
+  | "completed"
+  | "cancelled"
+  | "delayed";
+
+
 export type TravelPreference =
   | "elderly"
   | "family"

@@ -1,5 +1,6 @@
 import { TravelPreference, AiSuggestion } from "@/types/journey";
-import { DynamicAiPlanSchema, ParsedQuerySchema } from "@/lib/schemas";
+// Schemas are used in API routes; they're imported there directly.
+
 
 // AI calls are proxied through server-side API routes to protect the API key.
 // See app/api/ai/plan/route.ts and app/api/ai/parse/route.ts
@@ -262,7 +263,9 @@ export async function generateDynamicPlan(params: {
   isOffline: boolean;
   language?: string;
 }): Promise<DynamicAiPlan> {
-  let { from, to, budget, preferences, safetyMode, language = "en" } = params;
+  let { from, to } = params;
+  const { budget, preferences, safetyMode, language = "en" } = params;
+
 
   if (!params.isOffline) {
     try {
@@ -288,8 +291,10 @@ export async function generateDynamicPlan(params: {
   const isKochi = from.toLowerCase().includes("kochi") || to.toLowerCase().includes("kochi") || 
                   from.toLowerCase().includes("airport") || to.toLowerCase().includes("marine drive");
 
-  // Default localized parameters
+  // Default localized parameters (used in fallback itinerary text generation)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const currencySymbol = "₹";
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const targetLangName = language === "hi" ? "Hindi (हिन्दी)" : language === "ml" ? "Malayalam (മലയാളം)" : "English";
 
   // Sophisticated Local plan generator fallback

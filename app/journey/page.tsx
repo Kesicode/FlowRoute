@@ -20,20 +20,23 @@ import {
   CreditCard,
   Map,
   List,
+  Hotel,
+  Compass,
+  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
 import { useSettings } from "@/lib/settings-context";
 import { t } from "@/services/translations";
 import { searchLocations } from "@/services/geocoding";
-import { getRoute, RouteData } from "@/services/routing";
+import { getRoute } from "@/services/routing";
 import { getWeather } from "@/services/weather";
 import { fetchNearbyPlaces } from "@/services/overpass";
 import { generateDynamicPlan, DynamicAiPlan } from "@/services/ai";
 import MapWrapper from "@/components/map-wrapper";
-import { Location, WeatherCondition } from "@/types/planner";
+import { Location } from "@/types/planner";
 import { FoodStop, Essential, Attraction, JourneyRoute, WeatherData, BudgetBreakdown, CarbonData, TravelPreference } from "@/types/journey";
 
-// Import panels
+// Existing panels
 import { RoutePanel } from "@/components/journey/route-panel";
 import { WeatherPanel } from "@/components/journey/weather-panel";
 import { FoodPanel } from "@/components/journey/food-panel";
@@ -46,6 +49,16 @@ import { ItineraryPanel } from "@/components/journey/itinerary-panel";
 import { ExplainabilityPanel } from "@/components/journey/explainability-panel";
 import { TicketBooking } from "@/components/ticket-booking";
 
+// Phase 1 — new panels & components
+import { JourneyHealthBadge } from "@/components/ui/JourneyHealthBadge";
+import { BudgetMeter } from "@/components/ui/BudgetMeter";
+import { MultiDayItineraryPanel } from "@/components/journey/multi-day-itinerary-panel";
+import { AccommodationPanel } from "@/components/journey/accommodation-panel";
+import { WhatNextPanel } from "@/components/journey/what-next-panel";
+import { useTripActions, useTripData, useBudgetState } from "@/hooks/useTripStore";
+
+
+
 type Tab = {
   id: string;
   label: string;
@@ -56,21 +69,47 @@ type Tab = {
 function JourneyContent() {
   const searchParams = useSearchParams();
   const { language, safetyMode, setSafetyMode } = useSettings();
-  
+
+  // Phase 1 — Zustand store
+  const tripData = useTripData();
+  const budgetData = useBudgetState();
+  const { initTrip } = useTripActions();
+
+
   const [activeTab, setActiveTab] = useState("route");
   const [loading, setLoading] = useState(true);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"routes" | "map">("routes");
 
-  // Search parameters
-  const from = searchParams.get("from") || "Kochi Airport";
-  const to = searchParams.get("to") || "Marine Drive";
-  const date = searchParams.get("date") || new Date().toISOString().split("T")[0];
-  const budgetParam = Number(searchParams.get("budget") || "5000");
-  const travellers = Number(searchParams.get("travellers") || "1");
-  const preferencesParam = searchParams.get("preferences") || "";
-  const safetyParam = searchParams.get("safety") === "true";
+  // URL params — may come from old bookmarks or planner redirect
+  const from = tripData?.from || searchParams.get("from") || "Kochi Airport";
+  const to = tripData?.to || searchParams.get("to") || "Marine Drive";
+  const date = tripData?.departureDate || searchParams.get("date") || new Date().toISOString().split("T")[0];
+  const budgetParam = tripData?.budget || Number(searchParams.get("budget") || "5000");
+  const travellers = tripData?.travellers || Number(searchParams.get("travellers") || "1");
+  const preferencesParam = tripData?.preferences?.join(",") || searchParams.get("preferences") || "";
+  const safetyParam = tripData?.safetyMode ?? searchParams.get("safety") === "true";
+
+  // Migration shim: if the store is empty but URL params exist, seed the store
+  useEffect(() => {
+    const urlFrom = searchParams.get("from");
+    const urlTo = searchParams.get("to");
+    if (urlFrom && urlTo && !tripData?.from) {
+      initTrip({
+        from: urlFrom,
+        to: urlTo,
+        departureDate: searchParams.get("date") || undefined,
+        travellers: Number(searchParams.get("travellers") || "1"),
+        budget: Number(searchParams.get("budget") || "0"),
+        currency: "INR",
+        preferences: (searchParams.get("preferences") || "").split(",").filter(Boolean),
+        travelerProfile: "solo",
+        safetyMode: searchParams.get("safety") === "true",
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally runs once on mount
 
   // Dynamic state loaded from real APIs
   const [origin, setOrigin] = useState<Location | null>(null);
@@ -360,6 +399,9 @@ function JourneyContent() {
     { id: "booking", label: language === "en" ? "Tickets" : language === "hi" ? "टिकट" : "ടിക്കറ്റുകൾ", icon: CreditCard },
     { id: "explainability", label: t("whyThisRoute", language) === "Why this route?" ? "AI Audit" : "ഓഡിറ്റ്", icon: ShieldCheck },
     { id: "itinerary", label: t("tabItinerary", language), icon: Calendar },
+    { id: "multiday", label: language === "en" ? "Trip Plan" : language === "hi" ? "यात्रा योजना" : "യാത്ര പ്ലാൻ", icon: Compass },
+    { id: "accommodation", label: language === "en" ? "Stay" : language === "hi" ? "ठहरना" : "താമസം", icon: Hotel },
+    { id: "whatnext", label: language === "en" ? "What Next" : language === "hi" ? "आगे क्या" : "അടുത്തത്", icon: ChevronRight },
     { id: "weather", label: t("tabWeather", language), icon: CloudSun },
     { id: "food", label: t("tabFood", language), icon: Utensils, badge: foodStops.length || undefined },
     { id: "essentials", label: t("tabEssentials", language), icon: ShieldCheck, badge: essentials.length || undefined },
@@ -383,14 +425,33 @@ function JourneyContent() {
     ),
     explainability: <ExplainabilityPanel metrics={aiPlan?.explainability || []} />,
     itinerary: <ItineraryPanel itinerary={aiPlan?.itinerary || []} />,
+    // Phase 1 — new panels
+    multiday: <MultiDayItineraryPanel days={[]} />,
+    accommodation: <AccommodationPanel />,
+    whatnext: <WhatNextPanel />,
     weather: weather ? <WeatherPanel weather={weather} /> : null,
     food: <FoodPanel foodStops={foodStops} />,
     essentials: <EssentialsPanel essentials={essentials} />,
     attractions: <AttractionsPanel attractions={attractions} />,
-    budget: budgetBreakdown ? <BudgetPanel budgetBreakdown={budgetBreakdown} /> : null,
+    budget: (
+      <div className="flex flex-col gap-4">
+        {/* Phase 1 BudgetMeter from store */}
+        {budgetData && (budgetData.committedAmount > 0 || budgetParam > 0) && (
+          <BudgetMeter
+            committed={budgetData.committedAmount || 0}
+            total={tripData?.budget || budgetParam}
+            currency={tripData?.currency || "INR"}
+            className="mb-2"
+          />
+        )}
+        {budgetBreakdown ? <BudgetPanel budgetBreakdown={budgetBreakdown} /> : null}
+      </div>
+    ),
     carbon: carbon ? <CarbonPanel carbon={carbon} /> : null,
     ai: aiPlan ? <AiSuggestionsPanel aiSuggestions={aiPlan.aiSuggestions} /> : null,
-  }), [routes, weather, foodStops, essentials, attractions, budgetBreakdown, carbon, aiPlan, selectedRouteId, handleRouteSelect, handleRouteHover, origin, destination, date, travellers]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [routes, weather, foodStops, essentials, attractions, budgetBreakdown, carbon, aiPlan, selectedRouteId, handleRouteSelect, handleRouteHover, origin, destination, date, travellers, budgetData, tripData]);
+
 
   const selectedRoute = routes.find(r => r.id === selectedRouteId) ?? null;
 
@@ -462,7 +523,10 @@ function JourneyContent() {
                   <span className="text-[9px] px-2 py-0.5 rounded-full bg-brand-cyan/15 text-brand-cyan border border-brand-cyan/25 font-bold animate-pulse">
                     ✓ {t("aiPlanReady", language)}
                   </span>
+                  {/* Phase 1 — Journey health badge */}
+                  <JourneyHealthBadge />
                 </div>
+
                 <p className="text-xs text-slate-500 mt-0.5 font-medium">
                   {new Date(date).toLocaleDateString(language === "en" ? "en-GB" : language === "hi" ? "hi-IN" : "ml-IN", {
                     weekday: "short", day: "numeric", month: "long"

@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Route, Menu, X, Sun, Moon, LayoutDashboard, Map, Home, Globe, ShieldAlert, Wifi, WifiOff } from "lucide-react";
+import { Route, Menu, X, Sun, Moon, LayoutDashboard, Map, Home, Globe, ShieldAlert, Wifi, WifiOff, Compass } from "lucide-react";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { useSettings } from "@/lib/settings-context";
 import { t, Language } from "@/services/translations";
@@ -64,8 +65,10 @@ export default function Navbar() {
   const navLinks = [
     { name: language === "en" ? "Home" : language === "hi" ? "होम" : "ഹോം", href: "/", icon: Home },
     { name: language === "en" ? "Planner" : language === "hi" ? "योजनाकार" : "പ്ലാനർ", href: "/planner", icon: Map },
+    { name: language === "en" ? "Explore" : language === "hi" ? "अन्वेषण" : "പര്യവേക്ഷണം", href: "/explore", icon: Compass },
     { name: language === "en" ? "Dashboard" : language === "hi" ? "डैशबोर्ड" : "ഡാഷ്‌ബോർഡ്", href: "/dashboard", icon: LayoutDashboard },
   ];
+
 
   return (
     <header

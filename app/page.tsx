@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Sparkles,
@@ -11,16 +12,23 @@ import {
   Accessibility,
   ArrowRight,
   Cpu,
-  ChevronRight,
   Star,
   Users,
   Leaf,
   Utensils,
   Search,
   MapPin,
-  Navigation
 } from "lucide-react";
 import { travelPreferences } from "@/lib/mockData";
+import { useTripActions } from "@/hooks/useTripStore";
+
+const QUICK_PROMPTS = [
+  "₹15,000 Goa trip",
+  "Weekend from Kochi",
+  "Budget Europe 10 days",
+  "Dubai family trip",
+];
+
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -115,8 +123,49 @@ const steps = [
 ];
 
 export default function Home() {
-  const [fromQuery, setFromQuery] = useState("");
-  const [toQuery, setToQuery] = useState("");
+  const [nlpQuery, setNlpQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [loadingLabel, setLoadingLabel] = useState("Parsing your journey...");
+  const router = useRouter();
+  const { initTrip } = useTripActions();
+
+  const handleSearch = async () => {
+    if (!nlpQuery.trim() || isSearching) return;
+    setIsSearching(true);
+    setLoadingLabel("Parsing your journey...");
+
+    try {
+      const res = await fetch("/api/ai/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: nlpQuery }),
+      });
+
+      setLoadingLabel("Building your plan...");
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && !data.error) {
+          initTrip({
+            from: data.from ?? "",
+            to: data.to ?? "",
+            departureDate: data.date,
+            travellers: Number(data.travellers ?? 1),
+            budget: Number(data.budget ?? 0),
+            currency: "INR",
+            preferences: Array.isArray(data.preferences) ? data.preferences : [],
+            travelerProfile: "solo",
+            safetyMode: Boolean(data.safetyMode),
+          });
+        }
+      }
+    } catch {
+      // On error, just navigate to planner — they can fill in the form
+    } finally {
+      setIsSearching(false);
+      router.push("/planner");
+    }
+  };
 
   return (
     <div className="flex flex-col overflow-hidden">
@@ -176,39 +225,51 @@ export default function Home() {
             food, budget, and carbon footprint — choosing the <em className="text-slate-300 not-italic font-medium">most suitable journey</em> for you.
           </motion.p>
 
-          {/* AI Search Bar */}
+          {/* NLP Search Bar */}
           <motion.div
             variants={itemVariants}
-            className="max-w-2xl mx-auto glass-panel rounded-2xl p-4 shadow-2xl mb-8"
+            className="max-w-2xl mx-auto glass-panel rounded-2xl p-4 shadow-2xl mb-6"
           >
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex gap-2">
               <div className="flex-1 relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-cyan" />
+                <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-cyan pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="From — King's Cross..."
-                  value={fromQuery}
-                  onChange={(e) => setFromQuery(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 focus:border-brand-cyan/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition-colors"
+                  placeholder="What's your next journey? Try: ₹15,000 Goa trip from Kochi"
+                  value={nlpQuery}
+                  onChange={(e) => setNlpQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  className="w-full bg-white/5 border border-white/10 focus:border-brand-cyan/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition-colors min-h-[48px]"
+                  aria-label="Describe your journey"
                 />
               </div>
-              <div className="flex-1 relative">
-                <Navigation className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-blue" />
-                <input
-                  type="text"
-                  placeholder="To — Tower Bridge..."
-                  value={toQuery}
-                  onChange={(e) => setToQuery(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 focus:border-brand-blue/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition-colors"
-                />
-              </div>
-              <Link
-                href="/planner"
-                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand-cyan text-background font-semibold text-sm hover:bg-brand-cyan/90 hover:shadow-[0_0_20px_rgba(0,242,254,0.4)] transition-all duration-300 whitespace-nowrap"
+              {/* Find Route button */}
+              <button
+                onClick={handleSearch}
+                disabled={isSearching || !nlpQuery.trim()}
+                className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-brand-cyan text-background font-semibold text-sm hover:bg-brand-cyan/90 hover:shadow-[0_0_20px_rgba(0,242,254,0.4)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+                aria-label="Find route"
               >
-                <Search className="w-4 h-4" />
-                Find Route
-              </Link>
+                {isSearching ? (
+                  <span className="w-4 h-4 border-2 border-background/50 border-t-background rounded-full animate-spin" />
+                ) : (
+                  <Search className="w-4 h-4" />
+                )}
+                {isSearching ? loadingLabel : "Find Route"}
+              </button>
+            </div>
+
+            {/* Quick prompt chips */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              {QUICK_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  onClick={() => setNlpQuery(prompt)}
+                  className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-400 hover:text-white hover:bg-white/10 hover:border-brand-cyan/30 transition-all"
+                >
+                  {prompt}
+                </button>
+              ))}
             </div>
           </motion.div>
         </motion.div>
