@@ -1,26 +1,48 @@
-feat: Group I - GeolocationConsent, budget engine wiring, multi-day plan, GPS watchPosition
+feat: Phase 2 Groups J-N — MapLibre, saved trips, profile, what-if, deviation, settings bridge
 
-[Group I-A] Budget engine auto-run
-- estimateBudget() fires whenever tripData changes
-- Writes BudgetAllocation to budget-slice via setAllocation()
-- getBudgetRisk() updates budgetRisk from committed vs total
-- BudgetMeter reads live allocation totals from store
+Group J — MapLibre GL on Journey Page
+- components/map/JourneyMapInner.tsx: real MapLibre GL map (OSM tiles, no API key)
+  - Route line (GeoJSON, cyan), origin/destination markers, live GPS dot
+  - Separate effects for map init vs live-coords update (no full re-mounts)
+  - OSRM [lat,lng] -> GeoJSON [lng,lat] reversal handled correctly
+- components/map/JourneyMap.tsx: dynamic import wrapper, WebGL detection, Leaflet fallback
+- app/journey/page.tsx: swapped MapWrapper -> JourneyMap, passes liveCoords
 
-[Group I-B] Multi-day plan fetch
-- /api/ai/trip called when tripData.from + tripData.to available
-- Response days[] wired into MultiDayItineraryPanel (was empty [])
-- Loading spinner while plan generates; graceful silent failure
+Group K — Saved Trips
+- types/trip.ts: SavedTripSummary interface
+- lib/store/trips-list-slice.ts: Zustand slice (MAX=20, dedup by id)
+- lib/store/store.ts: wired TripsListSlice + savedTrips to partialize
+- hooks/useTripStore.ts: useSavedTrips, useTripsListActions selectors
+- components/trips/TripCard.tsx: status badge, two-step delete confirm
+- app/trips/page.tsx: grid list, empty state, Save Current Trip CTA
+- app/trips/[id]/page.tsx: dynamic detail page, 404 fallback, Resume/Delete
+- components/navbar.tsx: Trips link (EN/HI/ML)
 
-[Group I-C] GPS watchPosition
-- navigator.geolocation.watchPosition starts only after consent granted
-- Live coords written to journey-slice via setLiveCoords()
-- Cleans up clearWatch() on unmount
+Group L — Profile Page
+- types/trip.ts: UserProfile interface
+- lib/store/settings-slice.ts: userProfile field + setUserProfile action
+- hooks/useTripStore.ts: useUserProfile, setUserProfile in useSettingsActions
+- app/profile/page.tsx: 5-section profile (Identity, Preferences, Language/Region,
+  Safety/Privacy, Data) — fully local, no auth needed
+- components/navbar.tsx: Profile link with avatarEmoji display
 
-[Group I-D] GeolocationConsent modal
-- components/GeolocationConsent.tsx created
-- Privacy-first: location data only on device, never sent to server
-- Framer Motion slide-in, focus-trapped, backdrop-click to dismiss
-- Shows 1.5s after journey loads if consent not yet granted
-- Calls grantGeolocationConsent() internally via its own hook
+Group M — What-If Simulator + Live Deviation
+- components/ui/WhatIfPanel.tsx: budget slider (20%-300% of original)
+  - Category breakdown diff vs current allocation
+  - Apply -> updateTripField("budget"), Reset, estimated disclaimer
+- components/ui/DeviationBanner.tsx: slide-down orange alert, Dismiss + Recalculate
+  - Framer Motion, respects prefers-reduced-motion, role="alert" aria-live="assertive"
+- app/journey/page.tsx:
+  - GPS effect now calls real detectDeviation() from journey-engine (haversine, 300m)
+  - DeviationBanner wired above JourneyMap in relative-positioned container
+  - What If tab added (Sliders icon, EN/HI/ML) + WhatIfPanel in panelContent
 
-Gates: lint 0 errors | build exit 0 (10 routes) | test 45/45 pass
+Group N — Settings-Context -> Zustand Bridge
+- lib/settings-context.tsx: replaced React Context with thin Zustand bridge
+  - SettingsProvider -> passthrough (<>{children}</>)
+  - useSettings() -> reads from Zustand selectors (language, safetyMode, emergencyMode)
+  - Language type re-exported for backward compat
+  - Eliminates dual localStorage (flowroute_lang, flowroute_safety) writes
+  - All 8 existing call-sites (journey, planner, navbar, dashboard, overlay...) work unchanged
+
+Gates: lint 0 errors | build exit 0 (13 routes) | test 45/45 pass

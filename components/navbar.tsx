@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Route, Menu, X, Sun, Moon, LayoutDashboard, Map, Home, Globe, ShieldAlert, Wifi, WifiOff, Compass } from "lucide-react";
+import { Route, Menu, X, Sun, Moon, LayoutDashboard, Map, Home, Globe, ShieldAlert, Wifi, WifiOff, Compass, Folder, User } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useSettings } from "@/lib/settings-context";
 import { t, Language } from "@/services/translations";
+import { useUserProfile } from "@/hooks/useTripStore";
+
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,6 +19,7 @@ export default function Navbar() {
   
   const pathname = usePathname();
   const { language, setLanguage, setEmergencyMode } = useSettings();
+  const userProfile = useUserProfile();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -67,7 +70,10 @@ export default function Navbar() {
     { name: language === "en" ? "Planner" : language === "hi" ? "योजनाकार" : "പ്ലാനർ", href: "/planner", icon: Map },
     { name: language === "en" ? "Explore" : language === "hi" ? "अन्वेषण" : "പര്യവേക്ഷണം", href: "/explore", icon: Compass },
     { name: language === "en" ? "Dashboard" : language === "hi" ? "डैशबोर्ड" : "ഡാഷ്‌ബോർഡ്", href: "/dashboard", icon: LayoutDashboard },
+    { name: language === "en" ? "Trips" : language === "hi" ? "यात्राएं" : "യാത്രകൾ", href: "/trips", icon: Folder },
+    { name: language === "en" ? "Profile" : language === "hi" ? "प्रोफ़ाइल" : "പ്രൊഫൈൽ", href: "/profile", icon: User, emoji: userProfile.avatarEmoji },
   ];
+
 
 
   return (
@@ -100,7 +106,11 @@ export default function Navbar() {
                   href={link.href}
                   className="relative text-sm font-medium transition-colors hover:text-brand-cyan py-1 flex items-center gap-1.5"
                 >
-                  <link.icon className="w-3.5 h-3.5" />
+                  {'emoji' in link && link.emoji ? (
+                    <span className="text-sm leading-none">{link.emoji}</span>
+                  ) : (
+                    <link.icon className="w-3.5 h-3.5" />
+                  )}
                   <span className={isActive ? "text-brand-cyan" : "text-slate-400"}>
                     {link.name}
                   </span>
@@ -115,6 +125,7 @@ export default function Navbar() {
               );
             })}
           </nav>
+
 
           {/* Right Controls */}
           <div className="hidden md:flex items-center space-x-3">
@@ -238,11 +249,16 @@ export default function Navbar() {
                         : "text-slate-400 hover:text-white hover:bg-white/5"
                     }`}
                   >
-                    <link.icon className="w-4 h-4" />
+                    {'emoji' in link && link.emoji ? (
+                      <span className="text-base leading-none">{link.emoji}</span>
+                    ) : (
+                      <link.icon className="w-4 h-4" />
+                    )}
                     {link.name}
                   </Link>
                 );
               })}
+
               
               {/* Language selection in mobile menu */}
               <div className="pt-2 border-t border-white/5 flex gap-2">

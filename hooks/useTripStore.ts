@@ -81,6 +81,8 @@ export const useTravelerProfile = () => useFlowStore((s) => s.travelerProfile);
 
 export const useGeolocationConsent = () => useFlowStore((s) => s.geolocationConsent);
 
+export const useUserProfile = () => useFlowStore((s) => s.userProfile);
+
 export const useSettingsActions = () =>
   useFlowStore((s) => ({
     setLanguage: s.setLanguage,
@@ -91,6 +93,7 @@ export const useSettingsActions = () =>
     setTravelerProfile: s.setTravelerProfile,
     grantGeolocationConsent: s.grantGeolocationConsent,
     revokeGeolocationConsent: s.revokeGeolocationConsent,
+    setUserProfile: s.setUserProfile,
   }));
 
 // ─── UI selectors ──────────────────────────────────────────────────────────────
@@ -110,3 +113,15 @@ export const useUIActions = () =>
     closeAllPanels: s.closeAllPanels,
     setLoadingPhase: s.setLoadingPhase,
   }));
+
+// ─── Trips list selectors ──────────────────────────────────────────────────────
+
+export const useSavedTrips = () => useFlowStore((s) => s.savedTrips);
+
+export const useTripsListActions = () =>
+  useFlowStore((s) => ({
+    saveCurrentTrip: s.saveCurrentTrip,
+    deleteSavedTrip: s.deleteSavedTrip,
+    clearAllTrips: s.clearAllTrips,
+  }));
+

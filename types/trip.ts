@@ -142,3 +142,26 @@ export type LoadingPhase =
   | "planning"
   | "optimizing"
   | "done";
+
+// ─── Saved Trip Summary ────────────────────────────────────────────────────────
+
+export interface SavedTripSummary {
+  id: string;
+  from: string;
+  to: string;
+  departureDate?: string;
+  returnDate?: string;
+  status: TripStatus;
+  createdAt: string; // ISO string
+  travellers?: number;
+  budget?: number;
+  currency?: string;
+}
+
+// ─── User Profile ─────────────────────────────────────────────────────────────
+
+export interface UserProfile {
+  displayName?: string;
+  avatarEmoji?: string;
+  defaultProfile?: TravelerProfile;
+}

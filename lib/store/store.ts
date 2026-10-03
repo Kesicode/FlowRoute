@@ -18,10 +18,11 @@ import { createJourneySlice, type JourneySlice } from "./journey-slice";
 import { createBudgetSlice, type BudgetSlice } from "./budget-slice";
 import { createSettingsSlice, type SettingsSlice } from "./settings-slice";
 import { createUISlice, type UISlice } from "./ui-slice";
+import { createTripsListSlice, type TripsListSlice } from "./trips-list-slice";
 
 // ─── Combined Store Type ──────────────────────────────────────────────────────
 
-export type AppStore = TripSlice & JourneySlice & BudgetSlice & SettingsSlice & UISlice;
+export type AppStore = TripSlice & JourneySlice & BudgetSlice & SettingsSlice & UISlice & TripsListSlice;
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ export const useFlowStore = create<AppStore>()(
       ...createBudgetSlice(...args),
       ...createSettingsSlice(...args),
       ...createUISlice(...args),
+      ...createTripsListSlice(...args),
     }),
     {
       name: TRIP_STORAGE_KEY,   // "flowroute_trip_v1"
@@ -48,7 +50,10 @@ export const useFlowStore = create<AppStore>()(
         travelerProfile: state.travelerProfile,
         discoveryMode: state.discoveryMode,
         geolocationConsent: state.geolocationConsent,
+        savedTrips: state.savedTrips,
+        userProfile: state.userProfile,
       }),
     }
   )
 );
+

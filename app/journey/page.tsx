@@ -23,7 +23,9 @@ import {
   Hotel,
   Compass,
   ChevronRight,
+  Sliders,
 } from "lucide-react";
+
 import Link from "next/link";
 import { useSettings } from "@/lib/settings-context";
 import { t } from "@/services/translations";
@@ -32,7 +34,7 @@ import { getRoute } from "@/services/routing";
 import { getWeather } from "@/services/weather";
 import { fetchNearbyPlaces } from "@/services/overpass";
 import { generateDynamicPlan, DynamicAiPlan } from "@/services/ai";
-import MapWrapper from "@/components/map-wrapper";
+import { JourneyMap } from "@/components/map/JourneyMap";
 import { Location } from "@/types/planner";
 import { FoodStop, Essential, Attraction, JourneyRoute, WeatherData, BudgetBreakdown, CarbonData, TravelPreference } from "@/types/journey";
 
@@ -56,6 +58,8 @@ import { MultiDayItineraryPanel } from "@/components/journey/multi-day-itinerary
 import { AccommodationPanel } from "@/components/journey/accommodation-panel";
 import { WhatNextPanel } from "@/components/journey/what-next-panel";
 import { GeolocationConsent } from "@/components/GeolocationConsent";
+import { WhatIfPanel } from "@/components/ui/WhatIfPanel";
+import { DeviationBanner } from "@/components/ui/DeviationBanner";
 import {
   useTripActions,
   useTripData,
@@ -63,9 +67,12 @@ import {
   useBudgetActions,
   useJourneyActions,
   useGeolocationConsent,
+  useLiveCoords,
+  useDeviationDetected,
 } from "@/hooks/useTripStore";
 
 import { estimateBudget, getBudgetRisk } from "@/lib/budget-engine";
+import { detectDeviation } from "@/lib/journey-engine";
 import type { TripDay } from "@/lib/schemas";
 
 type Tab = {
@@ -86,7 +93,8 @@ function JourneyContent() {
   const { setAllocation, setBudgetRisk } = useBudgetActions();
   const { setLiveCoords, setHealth, setDeviation } = useJourneyActions();
   const geolocationConsent = useGeolocationConsent();
-
+  const liveCoords = useLiveCoords();
+  const deviationDetected = useDeviationDetected();
 
   // Group I — local state
   const [showGeoConsent, setShowGeoConsent] = useState(false);
@@ -191,12 +199,15 @@ function JourneyContent() {
         const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         setLiveCoords(coords);
 
-        // Simple deviation check: if we have a route, check if current position
-        // is more than ~300m from the nearest route point.
-        // Full haversine implemented in journey-engine; this is a lightweight version.
-        setDeviation(false); // Reset — full deviation check happens in journey-engine
-        setHealth("on_track");
+        // Group M2: real haversine deviation check via journey-engine.detectDeviation()
+        // routeGeometry is [lat, lng] pairs from OSRM — matches engine expectation
+        const isOff = routeGeometry.length > 0
+          ? detectDeviation(coords, routeGeometry, 300)
+          : false;
+        setDeviation(isOff);
+        setHealth(isOff ? "at_risk" : "on_track");
       },
+
       () => {
         // On error (denied mid-session), just stop — don't revoke consent forcibly
       },
@@ -509,7 +520,9 @@ function JourneyContent() {
     { id: "multiday", label: language === "en" ? "Trip Plan" : language === "hi" ? "यात्रा योजना" : "യാത്ര പ്ലാൻ", icon: Compass },
     { id: "accommodation", label: language === "en" ? "Stay" : language === "hi" ? "ठहरना" : "താമസം", icon: Hotel },
     { id: "whatnext", label: language === "en" ? "What Next" : language === "hi" ? "आगे क्या" : "അടുത്തത്", icon: ChevronRight },
+    { id: "whatif", label: language === "en" ? "What If" : language === "hi" ? "क्या होगा" : "എന്ത് ആകും", icon: Sliders },
     { id: "weather", label: t("tabWeather", language), icon: CloudSun },
+
     { id: "food", label: t("tabFood", language), icon: Utensils, badge: foodStops.length || undefined },
     { id: "essentials", label: t("tabEssentials", language), icon: ShieldCheck, badge: essentials.length || undefined },
     { id: "attractions", label: t("tabSights", language), icon: Landmark, badge: attractions.length || undefined },
@@ -547,7 +560,9 @@ function JourneyContent() {
     ),
     accommodation: <AccommodationPanel />,
     whatnext: <WhatNextPanel />,
+    whatif: <WhatIfPanel />,
     weather: weather ? <WeatherPanel weather={weather} /> : null,
+
     food: <FoodPanel foodStops={foodStops} />,
     essentials: <EssentialsPanel essentials={essentials} />,
     attractions: <AttractionsPanel attractions={attractions} />,
@@ -746,13 +761,20 @@ function JourneyContent() {
           </div>
         </div>
 
-        {/* ── Sticky Map Panel ── */}
+        {/* ── Sticky Map Panel (relative so DeviationBanner can overlay) ── */}
         <div
-          className={`right-panel ${
+          className={`right-panel relative ${
             mobileView === "routes" ? "hidden md:block" : "block"
           }`}
         >
-          <MapWrapper
+          <DeviationBanner
+            visible={deviationDetected}
+            onRecalculate={() => {
+              // Trigger a fresh route fetch from current live position
+              setDeviation(false);
+            }}
+          />
+          <JourneyMap
             origin={origin}
             destination={destination}
             routeGeometry={routeGeometry}
@@ -763,8 +785,10 @@ function JourneyContent() {
             activeSegmentCoords={activeSegmentCoords || undefined}
             selectedRoute={selectedRoute}
             allRoutes={routes}
+            liveCoords={liveCoords}
           />
         </div>
+
 
       </div>
     </>

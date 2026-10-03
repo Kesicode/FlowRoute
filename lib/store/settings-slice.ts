@@ -9,7 +9,7 @@
 
 import type { StateCreator } from "zustand";
 import type { AppStore } from "./store";
-import type { TravelerProfile, DiscoveryMode } from "@/types/trip";
+import type { TravelerProfile, DiscoveryMode, UserProfile } from "@/types/trip";
 
 export type Language = "en" | "hi" | "ml";
 export type Currency = "INR" | "USD" | "EUR" | "GBP";
@@ -23,6 +23,7 @@ export interface SettingsSlice {
   travelerProfile: TravelerProfile;
   /** User has consented to GPS location tracking for journey features. */
   geolocationConsent: boolean;
+  userProfile: UserProfile;
 
   setLanguage: (lang: Language) => void;
   setSafetyMode: (enabled: boolean) => void;
@@ -32,6 +33,7 @@ export interface SettingsSlice {
   setTravelerProfile: (profile: TravelerProfile) => void;
   grantGeolocationConsent: () => void;
   revokeGeolocationConsent: () => void;
+  setUserProfile: (profile: UserProfile) => void;
 }
 
 export const createSettingsSlice: StateCreator<AppStore, [], [], SettingsSlice> = (set) => ({
@@ -42,6 +44,7 @@ export const createSettingsSlice: StateCreator<AppStore, [], [], SettingsSlice> 
   currency: "INR",
   travelerProfile: "solo",
   geolocationConsent: false,
+  userProfile: {},
 
   setLanguage: (language) => set({ language }),
   setSafetyMode: (safetyMode) => set({ safetyMode }),
@@ -51,4 +54,6 @@ export const createSettingsSlice: StateCreator<AppStore, [], [], SettingsSlice> 
   setTravelerProfile: (travelerProfile) => set({ travelerProfile }),
   grantGeolocationConsent: () => set({ geolocationConsent: true }),
   revokeGeolocationConsent: () => set({ geolocationConsent: false }),
+  setUserProfile: (userProfile) => set({ userProfile }),
 });
+
