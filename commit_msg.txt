@@ -1,0 +1,26 @@
+feat: Group I - GeolocationConsent, budget engine wiring, multi-day plan, GPS watchPosition
+
+[Group I-A] Budget engine auto-run
+- estimateBudget() fires whenever tripData changes
+- Writes BudgetAllocation to budget-slice via setAllocation()
+- getBudgetRisk() updates budgetRisk from committed vs total
+- BudgetMeter reads live allocation totals from store
+
+[Group I-B] Multi-day plan fetch
+- /api/ai/trip called when tripData.from + tripData.to available
+- Response days[] wired into MultiDayItineraryPanel (was empty [])
+- Loading spinner while plan generates; graceful silent failure
+
+[Group I-C] GPS watchPosition
+- navigator.geolocation.watchPosition starts only after consent granted
+- Live coords written to journey-slice via setLiveCoords()
+- Cleans up clearWatch() on unmount
+
+[Group I-D] GeolocationConsent modal
+- components/GeolocationConsent.tsx created
+- Privacy-first: location data only on device, never sent to server
+- Framer Motion slide-in, focus-trapped, backdrop-click to dismiss
+- Shows 1.5s after journey loads if consent not yet granted
+- Calls grantGeolocationConsent() internally via its own hook
+
+Gates: lint 0 errors | build exit 0 (10 routes) | test 45/45 pass

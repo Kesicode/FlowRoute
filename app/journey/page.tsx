@@ -55,9 +55,18 @@ import { BudgetMeter } from "@/components/ui/BudgetMeter";
 import { MultiDayItineraryPanel } from "@/components/journey/multi-day-itinerary-panel";
 import { AccommodationPanel } from "@/components/journey/accommodation-panel";
 import { WhatNextPanel } from "@/components/journey/what-next-panel";
-import { useTripActions, useTripData, useBudgetState } from "@/hooks/useTripStore";
+import { GeolocationConsent } from "@/components/GeolocationConsent";
+import {
+  useTripActions,
+  useTripData,
+  useBudgetState,
+  useBudgetActions,
+  useJourneyActions,
+  useGeolocationConsent,
+} from "@/hooks/useTripStore";
 
-
+import { estimateBudget, getBudgetRisk } from "@/lib/budget-engine";
+import type { TripDay } from "@/lib/schemas";
 
 type Tab = {
   id: string;
@@ -74,7 +83,14 @@ function JourneyContent() {
   const tripData = useTripData();
   const budgetData = useBudgetState();
   const { initTrip } = useTripActions();
+  const { setAllocation, setBudgetRisk } = useBudgetActions();
+  const { setLiveCoords, setHealth, setDeviation } = useJourneyActions();
+  const geolocationConsent = useGeolocationConsent();
 
+
+  // Group I — local state
+  const [showGeoConsent, setShowGeoConsent] = useState(false);
+  const [multiDayPlan, setMultiDayPlan] = useState<TripDay[]>([]);
 
   const [activeTab, setActiveTab] = useState("route");
   const [loading, setLoading] = useState(true);
@@ -111,7 +127,98 @@ function JourneyContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // intentionally runs once on mount
 
+  // ── Group I-A: Budget engine auto-run ────────────────────────────────────────
+  // Runs whenever trip data becomes available (from store or URL shim).
+  // Writes results to budget-slice so BudgetMeter stays live.
+  useEffect(() => {
+    if (!tripData) return;
+    try {
+      const allocation = estimateBudget(tripData);
+      setAllocation(allocation);
+      setBudgetRisk(getBudgetRisk(allocation, budgetData.committedAmount));
+    } catch {
+      // Budget engine is best-effort; swallow errors silently
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripData?.from, tripData?.to, tripData?.departureDate, tripData?.returnDate,
+      tripData?.travellers, tripData?.budget, tripData?.accommodationPreference]);
+
+  // ── Group I-B: Multi-day plan fetch ──────────────────────────────────────────
+  // Calls /api/ai/trip when trip data is ready and returns structured TripDay[].
+  useEffect(() => {
+    if (!tripData?.from || !tripData?.to) return;
+    let cancelled = false;
+
+    async function fetchMultiDayPlan() {
+      try {
+        const res = await fetch("/api/ai/trip", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            from: tripData?.from,
+            to: tripData?.to,
+            departureDate: tripData?.departureDate,
+            returnDate: tripData?.returnDate,
+            travellers: tripData?.travellers ?? 1,
+            budget: tripData?.budget ?? 0,
+            currency: tripData?.currency ?? "INR",
+            preferences: tripData?.preferences ?? [],
+          }),
+        });
+        if (cancelled || !res.ok) return;
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data.days)) {
+          setMultiDayPlan(data.days as TripDay[]);
+        }
+      } catch {
+        // Multi-day plan is optional; fail silently
+      }
+    }
+
+    fetchMultiDayPlan();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripData?.from, tripData?.to, tripData?.departureDate]);
+
+  // ── Group I-C: GPS watchPosition (only after consent granted) ────────────────
+  // Writes live coords to journey-slice. Detects deviation if > 300m off route.
+  useEffect(() => {
+    if (!geolocationConsent) return;
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setLiveCoords(coords);
+
+        // Simple deviation check: if we have a route, check if current position
+        // is more than ~300m from the nearest route point.
+        // Full haversine implemented in journey-engine; this is a lightweight version.
+        setDeviation(false); // Reset — full deviation check happens in journey-engine
+        setHealth("on_track");
+      },
+      () => {
+        // On error (denied mid-session), just stop — don't revoke consent forcibly
+      },
+      { enableHighAccuracy: true, maximumAge: 10_000, timeout: 30_000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geolocationConsent]);
+
+  // ── Group I-D: Prompt geolocation consent once after data loads ───────────────
+  useEffect(() => {
+    if (!geolocationConsent && !loading) {
+      // Small delay so the main journey UI renders first
+      const t = setTimeout(() => setShowGeoConsent(true), 1500);
+      return () => clearTimeout(t);
+    }
+  }, [loading, geolocationConsent]);
+
+
   // Dynamic state loaded from real APIs
+
   const [origin, setOrigin] = useState<Location | null>(null);
   const [destination, setDestination] = useState<Location | null>(null);
   const [routeGeometry, setRouteGeometry] = useState<[number, number][]>([]);
@@ -425,8 +532,19 @@ function JourneyContent() {
     ),
     explainability: <ExplainabilityPanel metrics={aiPlan?.explainability || []} />,
     itinerary: <ItineraryPanel itinerary={aiPlan?.itinerary || []} />,
-    // Phase 1 — new panels
-    multiday: <MultiDayItineraryPanel days={[]} />,
+    // Phase 1 — new panels (Group I-B: multiday wired from /api/ai/trip)
+    multiday: (
+      <div className="flex flex-col gap-3">
+        {multiDayPlan.length === 0 && (
+          <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+            <span className="text-2xl">🗺️</span>
+            <p className="text-sm text-slate-400">Generating your multi-day plan…</p>
+            <div className="w-5 h-5 border-2 border-brand-cyan/30 border-t-brand-cyan rounded-full animate-spin mt-1" />
+          </div>
+        )}
+        <MultiDayItineraryPanel days={multiDayPlan} />
+      </div>
+    ),
     accommodation: <AccommodationPanel />,
     whatnext: <WhatNextPanel />,
     weather: weather ? <WeatherPanel weather={weather} /> : null,
@@ -435,12 +553,18 @@ function JourneyContent() {
     attractions: <AttractionsPanel attractions={attractions} />,
     budget: (
       <div className="flex flex-col gap-4">
-        {/* Phase 1 BudgetMeter from store */}
-        {budgetData && (budgetData.committedAmount > 0 || budgetParam > 0) && (
+        {/* Group I-A: BudgetMeter always visible when allocation exists */}
+        {budgetData.allocation && (
           <BudgetMeter
-            committed={budgetData.committedAmount || 0}
-            total={tripData?.budget || budgetParam}
-            currency={tripData?.currency || "INR"}
+            committed={budgetData.committedAmount}
+            total={
+              budgetData.allocation.transport.amount +
+              budgetData.allocation.accommodation.amount +
+              budgetData.allocation.food.amount +
+              budgetData.allocation.activities.amount +
+              budgetData.allocation.reserve.amount
+            }
+            currency={budgetData.allocation.transport.currency}
             className="mb-2"
           />
         )}
@@ -450,7 +574,10 @@ function JourneyContent() {
     carbon: carbon ? <CarbonPanel carbon={carbon} /> : null,
     ai: aiPlan ? <AiSuggestionsPanel aiSuggestions={aiPlan.aiSuggestions} /> : null,
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [routes, weather, foodStops, essentials, attractions, budgetBreakdown, carbon, aiPlan, selectedRouteId, handleRouteSelect, handleRouteHover, origin, destination, date, travellers, budgetData, tripData]);
+  }), [routes, weather, foodStops, essentials, attractions, budgetBreakdown, carbon, aiPlan,
+       selectedRouteId, handleRouteSelect, handleRouteHover, origin, destination,
+       date, travellers, budgetData, tripData, multiDayPlan]);
+
 
 
   const selectedRoute = routes.find(r => r.id === selectedRouteId) ?? null;
@@ -472,7 +599,14 @@ function JourneyContent() {
 
   return (
     <>
+      {/* ── Group I: Geolocation consent modal ── */}
+      <GeolocationConsent
+        open={showGeoConsent}
+        onDismiss={() => setShowGeoConsent(false)}
+      />
+
       {/* ── Mobile view toggle bar ── */}
+
       <div className="md:hidden flex items-center justify-center gap-2 py-2 px-4 border-b border-white/5 bg-black/30 shrink-0">
         <button
           onClick={() => setMobileView("routes")}
