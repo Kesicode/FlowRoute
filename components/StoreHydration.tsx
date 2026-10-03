@@ -20,6 +20,8 @@
 import { useEffect, useState } from "react";
 import { useFlowStore } from "@/lib/store/store";
 import { TRIP_STORAGE_KEY, TripStateSchema } from "@/lib/schemas";
+import { preloadRates } from "@/services/currency";
+
 
 export function StoreHydration() {
   const [schemaResetNotice, setSchemaResetNotice] = useState(false);
@@ -48,7 +50,12 @@ export function StoreHydration() {
 
     // Rehydrate the store from localStorage (now that we've validated it)
     useFlowStore.persist.rehydrate();
+
+    // Phase 3 — preload FX rates into memory/localStorage so CurrencyDisplay
+    // components don't need to wait for a network round-trip on first render.
+    preloadRates();
   }, []);
+
 
   if (!schemaResetNotice) return null;
 

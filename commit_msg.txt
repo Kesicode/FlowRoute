@@ -1,19 +1,52 @@
-feat: Phase 2 Group P - GPS tracking indicator + geolocation revoke in navbar
+feat: Phase 3 - Booking Deep-Links & Currency Conversion Engine
 
-hooks/useTripStore.ts
-- Added useIsTracking() selector: true when geolocationConsent=true AND liveCoords!=null
-  (computed from two separate slice fields, never re-renders unless both change)
+services/booking-engine.ts (NEW)
+- Pure deep-link URL generator for 5 transport/stay categories
+- Train: IRCTC, ConfirmTkt, MakeMyTrip (YYYYMMDD date format, class code, pax count)
+- Flight: Google Flights, Skyscanner, MakeMyTrip, EaseMyTrip
+- Bus: RedBus, AbhiBus, MakeMyTrip (slug-formatted city names)
+- Cab: Uber native deeplink (uber:// with lat/lng), Uber web fallback, Ola, Rapido
+- Hotel: Booking.com, Agoda, Airbnb, MakeMyTrip Hotels, Goibibo
+- classifySegmentMode(): regex classifier (train→cab→flight→bus priority order)
+  Fixed: cab checked before flight so "Uber to airport" = cab, not flight
+- getSegmentBookingLinks(): universal dispatcher — only fires for type=travel
 
-components/navbar.tsx
-- GPS tracking dot: pulsing cyan animate-ping badge on FlowRoute logo icon
-  Only visible when useIsTracking() is true
-  aria-label + title "Live location active" for screen readers
-- Live location revoke button (desktop only):
-  Appears between Online/Offline badge and Language dropdown when tracking
-  Shows pulsing cyan dot + "Live" label
-  Hover: transitions to red — signals "click to stop tracking"
-  onClick: calls revokeGeolocationConsent() — clears consent + stops watchPosition on next
-  re-render of journey page GPS effect
+services/currency.ts (NEW)
+- Live FX rates from free open.er-api.com (no API key, 1500 req/month limit)
+- 12-hour localStorage cache (key: flowroute_fx_v1) — survives page refreshes
+- 4-tier fallback: memory → localStorage → live fetch → stale cache → hardcoded rates
+- convertSync() for render-time use (uses in-memory fallback rates, always available)
+- convert() async for accurate post-mount conversion
+- formatCurrency() with Intl.NumberFormat + per-currency locale (en-IN for INR)
+- rateTooltip(), preloadRates() for app-mount warming
 
-Phase 2 complete: Groups J K L M N P all done
-Gates: lint 0 errors | build exit 0 (13 routes) | test 45/45 pass
+components/ui/BookingButton.tsx (NEW)
+- Pill button for a single booking link
+- Desktop: always opens in new tab (noopener, noreferrer)
+- Mobile deeplink: tries native app (window.location.href), falls back to web URL after 1.5s
+- Accessible: aria-label discloses "opens in new tab"
+
+components/ui/CurrencyDisplay.tsx (NEW)
+- React component: converts + formats an amount async on mount
+- Loading state: shows sync approximation with animate-pulse while awaiting live conversion
+- Tooltip: rate + data age ("Rate from 3h ago", "Just updated", "Fallback rate")
+- "est." badge in amber when using stale/fallback rates
+
+components/journey/multi-day-itinerary-panel.tsx (UPGRADED)
+- Each travel segment now has a "Book this leg" toggle
+- Inline collapsible row of BookingButtons auto-selected by classifySegmentMode
+- Accommodation note shows estimated cost per night in user currency
+- Day notes rendered below accordion content
+
+components/journey/accommodation-panel.tsx (UPGRADED)
+- Each demo hotel now has a "Book on a real platform" toggle with hotel deep-links
+- CurrencyDisplay replaces static INR price with live-converted amount
+- Links pre-filled with city, check-in/out dates, guest count from trip intent
+
+components/StoreHydration.tsx (MODIFIED)
+- preloadRates() called at end of mount effect so FX rates are warm immediately
+
+services/booking-engine.test.ts (NEW) - 31 tests
+services/currency.test.ts (NEW) - 19 tests
+
+Gates: lint 0 errors | build exit 0 (13 routes) | test 84/84 pass
