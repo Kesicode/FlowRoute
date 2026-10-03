@@ -36,6 +36,10 @@ export const useLiveCoords = () => useFlowStore((s) => s.liveCoords);
 
 export const useDeviationDetected = () => useFlowStore((s) => s.deviationDetected);
 
+/** Returns true when GPS consent is granted AND live coordinates are being received. */
+export const useIsTracking = () =>
+  useFlowStore((s) => s.geolocationConsent && s.liveCoords !== null);
+
 export const useJourneyActions = () =>
   useFlowStore((s) => ({
     setActiveSegment: s.setActiveSegment,

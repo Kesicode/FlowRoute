@@ -8,7 +8,8 @@ import { Route, Menu, X, Sun, Moon, LayoutDashboard, Map, Home, Globe, ShieldAle
 import { motion, AnimatePresence } from "framer-motion";
 import { useSettings } from "@/lib/settings-context";
 import { t, Language } from "@/services/translations";
-import { useUserProfile } from "@/hooks/useTripStore";
+import { useUserProfile, useIsTracking, useSettingsActions } from "@/hooks/useTripStore";
+
 
 
 export default function Navbar() {
@@ -20,6 +21,8 @@ export default function Navbar() {
   const pathname = usePathname();
   const { language, setLanguage, setEmergencyMode } = useSettings();
   const userProfile = useUserProfile();
+  const isTracking = useIsTracking();
+  const { revokeGeolocationConsent } = useSettingsActions();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -90,11 +93,20 @@ export default function Navbar() {
           <Link href="/" className="flex items-center space-x-2.5 group">
             <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-cyan/20 to-brand-blue/20 border border-brand-cyan/30 group-hover:border-brand-cyan/60 transition-all duration-300">
               <Route className="w-5 h-5 text-brand-cyan group-hover:rotate-12 transition-transform duration-300" />
+              {/* Group P — Live tracking indicator */}
+              {isTracking && (
+                <span
+                  className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-brand-cyan rounded-full animate-ping"
+                  aria-label="Live location active"
+                  title="Live location active"
+                />
+              )}
             </div>
             <span className="font-display font-bold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
               Flow<span className="text-brand-cyan">Route</span>
             </span>
           </Link>
+
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
@@ -148,7 +160,20 @@ export default function Navbar() {
               )}
             </div>
 
+            {/* Group P — Live location badge + revoke */}
+            {isTracking && (
+              <button
+                onClick={revokeGeolocationConsent}
+                title="Stop live location tracking"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-brand-cyan/30 bg-brand-cyan/10 text-brand-cyan text-xs font-semibold hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-all duration-200 group"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-cyan animate-ping group-hover:bg-red-400" />
+                <span>Live</span>
+              </button>
+            )}
+
             {/* Language Dropdown */}
+
             <div className="relative group/lang">
               <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:border-brand-cyan/30 text-slate-400 hover:text-brand-cyan transition-all duration-300">
                 <Globe className="w-4 h-4" />

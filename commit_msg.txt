@@ -1,48 +1,19 @@
-feat: Phase 2 Groups J-N — MapLibre, saved trips, profile, what-if, deviation, settings bridge
+feat: Phase 2 Group P - GPS tracking indicator + geolocation revoke in navbar
 
-Group J — MapLibre GL on Journey Page
-- components/map/JourneyMapInner.tsx: real MapLibre GL map (OSM tiles, no API key)
-  - Route line (GeoJSON, cyan), origin/destination markers, live GPS dot
-  - Separate effects for map init vs live-coords update (no full re-mounts)
-  - OSRM [lat,lng] -> GeoJSON [lng,lat] reversal handled correctly
-- components/map/JourneyMap.tsx: dynamic import wrapper, WebGL detection, Leaflet fallback
-- app/journey/page.tsx: swapped MapWrapper -> JourneyMap, passes liveCoords
+hooks/useTripStore.ts
+- Added useIsTracking() selector: true when geolocationConsent=true AND liveCoords!=null
+  (computed from two separate slice fields, never re-renders unless both change)
 
-Group K — Saved Trips
-- types/trip.ts: SavedTripSummary interface
-- lib/store/trips-list-slice.ts: Zustand slice (MAX=20, dedup by id)
-- lib/store/store.ts: wired TripsListSlice + savedTrips to partialize
-- hooks/useTripStore.ts: useSavedTrips, useTripsListActions selectors
-- components/trips/TripCard.tsx: status badge, two-step delete confirm
-- app/trips/page.tsx: grid list, empty state, Save Current Trip CTA
-- app/trips/[id]/page.tsx: dynamic detail page, 404 fallback, Resume/Delete
-- components/navbar.tsx: Trips link (EN/HI/ML)
+components/navbar.tsx
+- GPS tracking dot: pulsing cyan animate-ping badge on FlowRoute logo icon
+  Only visible when useIsTracking() is true
+  aria-label + title "Live location active" for screen readers
+- Live location revoke button (desktop only):
+  Appears between Online/Offline badge and Language dropdown when tracking
+  Shows pulsing cyan dot + "Live" label
+  Hover: transitions to red — signals "click to stop tracking"
+  onClick: calls revokeGeolocationConsent() — clears consent + stops watchPosition on next
+  re-render of journey page GPS effect
 
-Group L — Profile Page
-- types/trip.ts: UserProfile interface
-- lib/store/settings-slice.ts: userProfile field + setUserProfile action
-- hooks/useTripStore.ts: useUserProfile, setUserProfile in useSettingsActions
-- app/profile/page.tsx: 5-section profile (Identity, Preferences, Language/Region,
-  Safety/Privacy, Data) — fully local, no auth needed
-- components/navbar.tsx: Profile link with avatarEmoji display
-
-Group M — What-If Simulator + Live Deviation
-- components/ui/WhatIfPanel.tsx: budget slider (20%-300% of original)
-  - Category breakdown diff vs current allocation
-  - Apply -> updateTripField("budget"), Reset, estimated disclaimer
-- components/ui/DeviationBanner.tsx: slide-down orange alert, Dismiss + Recalculate
-  - Framer Motion, respects prefers-reduced-motion, role="alert" aria-live="assertive"
-- app/journey/page.tsx:
-  - GPS effect now calls real detectDeviation() from journey-engine (haversine, 300m)
-  - DeviationBanner wired above JourneyMap in relative-positioned container
-  - What If tab added (Sliders icon, EN/HI/ML) + WhatIfPanel in panelContent
-
-Group N — Settings-Context -> Zustand Bridge
-- lib/settings-context.tsx: replaced React Context with thin Zustand bridge
-  - SettingsProvider -> passthrough (<>{children}</>)
-  - useSettings() -> reads from Zustand selectors (language, safetyMode, emergencyMode)
-  - Language type re-exported for backward compat
-  - Eliminates dual localStorage (flowroute_lang, flowroute_safety) writes
-  - All 8 existing call-sites (journey, planner, navbar, dashboard, overlay...) work unchanged
-
+Phase 2 complete: Groups J K L M N P all done
 Gates: lint 0 errors | build exit 0 (13 routes) | test 45/45 pass
