@@ -10,7 +10,7 @@ import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trash2, MapPin, Calendar, Users, Wallet, Activity } from 'lucide-react';
 
-import { useSavedTrips, useTripsListActions } from '@/hooks/useTripStore';
+import { useSavedTrips, useTripsListActions, useTripActions } from '@/hooks/useTripStore';
 
 export default function TripDetailPage({
   params,
@@ -21,6 +21,8 @@ export default function TripDetailPage({
   const router = useRouter();
   const savedTrips = useSavedTrips();
   const { deleteSavedTrip } = useTripsListActions();
+  const { initTrip } = useTripActions();
+
 
   const trip = savedTrips.find((t) => t.id === id);
 
@@ -108,7 +110,23 @@ export default function TripDetailPage({
           {/* Actions */}
           <div className="flex items-center gap-3 pt-2 border-t border-white/10">
             <button
-              onClick={() => router.push('/journey')}
+              onClick={() => {
+                // Phase 8: Hydrate store so Journey page receives real data
+                initTrip({
+                  from: trip.from,
+                  to: trip.to,
+                  departureDate: trip.departureDate,
+                  returnDate: trip.returnDate,
+                  travellers: trip.travellers ?? 1,
+                  budget: trip.budget,
+                  currency: (trip.currency as 'INR' | 'USD' | 'EUR' | 'GBP') ?? 'INR',
+                  preferences: [],
+                  travelerProfile: 'solo',
+                  safetyMode: false,
+                });
+                router.push('/journey');
+              }}
+
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/20 hover:bg-brand-cyan/20 transition-colors"
             >
               Resume Trip

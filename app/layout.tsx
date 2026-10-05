@@ -9,6 +9,9 @@ import { StoreHydration } from "@/components/StoreHydration";
 // Phase 5 — PWA
 import { OfflineBanner } from "@/components/ui/OfflineBanner";
 import { InstallPrompt } from "@/components/ui/InstallPrompt";
+// Phase 8 — PWA update notification
+import { PWAUpdateToast } from "@/components/ui/PWAUpdateToast";
+
 
 export const metadata: Metadata = {
   title: "FlowRoute | AI-Powered Mobility Operating System",
@@ -66,7 +69,10 @@ export default async function RootLayout({
           <EmergencyOverlay />
           {/* Phase 5 — Install prompt appears above bottom nav on mobile */}
           <InstallPrompt />
+          {/* Phase 8 — SW update available notification */}
+          <PWAUpdateToast />
         </SettingsProvider>
+
 
       </body>
     </html>

@@ -345,6 +345,7 @@ export default function PlannerPage() {
                     <input
                       id="origin-input"
                       type="text"
+                      role="combobox"
                       aria-label={t("fromPlaceholder", language)}
                       aria-autocomplete="list"
                       aria-expanded={showOriginPanel && originSuggestions.length > 0}
@@ -355,6 +356,7 @@ export default function PlannerPage() {
                       onFocus={() => setShowOriginPanel(true)}
                       className="w-full bg-black/40 border border-white/8 focus:border-brand-cyan/50 rounded-xl pl-11 pr-9 py-3 text-sm text-slate-200 placeholder-slate-500 outline-none transition-colors"
                     />
+
                     {originQuery && (
                       <button 
                         onClick={() => { setOriginQuery(""); setOrigin(null); }} 
@@ -398,6 +400,7 @@ export default function PlannerPage() {
                     <input
                       id="dest-input"
                       type="text"
+                      role="combobox"
                       aria-label={t("toPlaceholder", language)}
                       aria-autocomplete="list"
                       aria-expanded={showDestPanel && destSuggestions.length > 0}
@@ -408,6 +411,7 @@ export default function PlannerPage() {
                       onFocus={() => setShowDestPanel(true)}
                       className="w-full bg-black/40 border border-white/8 focus:border-brand-blue/50 rounded-xl pl-11 pr-9 py-3 text-sm text-slate-200 placeholder-slate-500 outline-none transition-colors"
                     />
+
                     {destQuery && (
                       <button 
                         onClick={() => { setDestQuery(""); setDestination(null); }} 

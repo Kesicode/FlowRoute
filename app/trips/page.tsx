@@ -3,6 +3,7 @@
 /**
  * app/trips/page.tsx
  * Saved trips list — browse, open, delete, and save the current trip.
+ * Phase 8: Resume Trip now calls initTrip() to hydrate the store.
  */
 
 import { useEffect } from 'react';
@@ -13,6 +14,7 @@ import {
   useSavedTrips,
   useTripsListActions,
   useTripData,
+  useTripActions,
 } from '@/hooks/useTripStore';
 import TripCard from '@/components/trips/TripCard';
 import type { SavedTripSummary } from '@/types/trip';
@@ -22,6 +24,7 @@ export default function TripsPage() {
   const savedTrips = useSavedTrips();
   const { saveCurrentTrip, deleteSavedTrip } = useTripsListActions();
   const currentTrip = useTripData();
+  const { initTrip } = useTripActions();
 
   useEffect(() => {
     document.title = 'Saved Trips | FlowRoute';
@@ -42,6 +45,23 @@ export default function TripsPage() {
       currency: currentTrip.intent.currency,
     };
     saveCurrentTrip(summary);
+  };
+
+  /** Phase 8: Hydrate Zustand store from saved summary, then navigate to journey */
+  const handleOpenTrip = (trip: SavedTripSummary) => {
+    initTrip({
+      from: trip.from,
+      to: trip.to,
+      departureDate: trip.departureDate,
+      returnDate: trip.returnDate,
+      travellers: trip.travellers ?? 1,
+      budget: trip.budget,
+      currency: (trip.currency as 'INR' | 'USD' | 'EUR' | 'GBP') ?? 'INR',
+      preferences: [],
+      travelerProfile: 'solo',
+      safetyMode: false,
+    });
+    router.push('/journey');
   };
 
   return (
@@ -88,7 +108,7 @@ export default function TripsPage() {
               <TripCard
                 key={trip.id}
                 trip={trip}
-                onOpen={() => router.push('/journey')}
+                onOpen={() => handleOpenTrip(trip)}
                 onDelete={() => deleteSavedTrip(trip.id)}
               />
             ))}

@@ -1,56 +1,54 @@
-feat: Phase 7 - Emergency SOS Page, Live Deviation Loop & Dashboard Real Data
+feat: Phase 8 - Explore MapLibre Engine, Trip Hydration, PWA Update Toast & A11y Fix
 
-app/emergency/page.tsx (NEW)
-- Full SOS hub page — offline-capable, no API calls needed
-- 112 call button: two-tap confirm flow (first tap shows "Tap again to confirm",
-  4s auto-dismiss, second tap fires tel:112). Pulsing red ring animation via Framer Motion.
-- Quick-call grid: Police 100, Ambulance 108, Fire 101, Women's Helpline 1091, Tourist Police 1363
-  Each is a <a href="tel:N"> link styled by service color
-- Safety mode toggle: auto-enables when page is visited; real-time toggle via useSettingsActions
-- Emergency Overlay toggle: red ShieldAlert pulsing badge when active
-- Nearby services grid: 4 Google Maps search links (hospital, police, pharmacy, ATM)
-  Opens in new tab; labeled "requires internet"
-- Emergency checklist: collapsible accordion (ChevronDown/Up), EN/HI/ML, 5 items
-- User profile card: shows displayName + avatarEmoji from Zustand userProfile if set
-- Footer disclaimer: "not a replacement for official emergency services"
-- All text trilingual (EN/HI/ML) based on useLanguage() from store
+components/map/ExploreMapInner.tsx (NEW)
+- Full MapLibre GL JS map for the Explore page (GPU-accelerated WebGL)
+- OSM raster tiles — no API key required
+- GPS position: pulsing cyan dot (CSS @keyframes injected once)
+- Discovery radius: GeoJSON Polygon drawn as dashed cyan circle overlay
+  (makeCircleGeoJSON with 64-point approximation; updates via setData on GeoJSONSource)
+- POI markers: emoji HTML elements per category (🍽️ food, 🎯 attraction, 🏥 hospital etc.)
+  hover scale 1.2x, Popup with name + category + "Add to Trip" button
+- "Add to Trip" dispatches flowroute:add-poi CustomEvent (popup runs in MapLibre DOM context)
+- Separate useEffects for map init (runs once), center/radius (fly + dot + circle), POIs (markers)
+- Full cleanup on unmount: map.remove()
 
-hooks/useDeviationLoop.ts (NEW)
-- 30s setInterval polling loop (POLL_INTERVAL_MS = 30_000)
-- Reads liveCoords + routeGeometry from Zustand (no duplicate GPS watch)
-- detectDeviation(current, geometry, 300m threshold) from journey-engine
-- State machine: consecutiveOnRoute counter, ttsAlertFired flag
-- TTS fires ONCE per deviation event via options.tts callback (not every poll)
-- Auto-clears deviation after CLEAR_AFTER_N=2 consecutive on-route checks
-- Cleans up interval on unmount
-- Returns { deviationDetected, isRunning }
+app/explore/page.tsx (UPGRADED — replaces Leaflet placeholder)
+- Dynamic import of ExploreMapInner (ssr:false) with skeleton loading fallback
+- GPS watch via navigator.geolocation.watchPosition (only when consent is granted)
+- Overpass POI fetch triggered on gpsCenter + discovery radius change (30min TTL cache)
+  Uses AbortController to cancel in-flight fetches on rapid mode changes
+- Discovery Mode segmented selector: Off / Low(500m) / Balanced(1.5km) / Active(3km) / Adventure(8km)
+  Labels trilingual EN/HI/ML
+- Category filter chips: Food / Sights / Essentials — toggle active set (Set<POICategory>)
+  Shows live POI count per category from Overpass results
+- CollapsiblePanel (AnimatePresence height animation) with GPS status indicator
+- "No trip active" hint card when mode is not off and no trip in store
+- "Added to trip" emerald success toast (2.5s auto-dismiss) on flowroute:add-poi event
+- Appends visit:${name} to trip preferences array via updateTripField
 
-app/journey/page.tsx (MODIFIED)
-- Imported useDeviationLoop
-- Wired with CustomEvent TTS dispatcher (flowroute:tts-speak)
-  → avoids duplicate useVoice() hook call; voice hook listens to this event
-- useDeviationLoop(routeGeometry, { tts: speakFn }) called after consent section
+app/trips/page.tsx (UPGRADED)
+- handleOpenTrip(trip) now calls initTrip() with the saved trip's full intent
+  before router.push('/journey'), so Journey page receives a fully hydrated store
+- Fields mapped: from, to, departureDate, returnDate, travellers, budget, currency
+- Previous version did router.push('/journey') with null store (regression fixed)
 
-app/dashboard/page.tsx (MODIFIED)
-- Added imports: useTripData, useSavedTrips, useLanguage, useBudgetState,
-  useDeviationDetected from hooks/useTripStore
-- New live Zustand panels section (shown when any real data exists):
-  · Active Trip Card — cyan border, Plane icon, from→to + budget + travellers,
-    Link to /journey
-  · Saved Trips count — shows count with Bookmark icon, Link to /trips
-  · Budget Used — emerald progress bar (committedAmount/totalAllocation)
-  · Deviation Alert — amber pulsing ShieldAlert, Link to /journey for recalculate
-- All panels conditionally rendered (hidden when store is empty)
-- Panels appear above existing mock stats grid, preserving all charts
+app/trips/[id]/page.tsx (UPGRADED)
+- Resume Trip button now calls initTrip() with the same hydration mapping
+  before navigating, matching the trips list behavior
 
-components/navbar.tsx (MODIFIED)
-- Added SOS nav link (last item): ShieldAlert icon, /emergency href
-  EN: "SOS" / HI: "आपातकाल" / ML: "SOS"
+components/ui/PWAUpdateToast.tsx (NEW)
+- Listens to usePWA().updateAvailable via useEffect
+- Slide-up toast: "New version available" + "Reload" + dismiss X
+- Reload flow: getRegistration → post SKIP_WAITING → wait for controllerchange event
+  → window.location.reload() (avoids blank page flash)
+- Dismissable without reload (sessionOnly — no localStorage)
+- role=alert, aria-live=polite for screen readers
 
-hooks/useDeviationLoop.test.ts (NEW) — 17 unit tests
-- processCheck() state machine: first alert fires, no duplicate alert, counter increment,
-  clears after N, resets on re-deviation, no-op when not deviated, clearAfterN=3 case
-- getDeviationAlert(): EN/HI/ML/unknown language
-- Loop constants: POLL_INTERVAL_MS, DEVIATION_THRESHOLD_M, CLEAR_AFTER_N
+app/layout.tsx (MODIFIED)
+- Added PWAUpdateToast import + rendered after InstallPrompt in SettingsProvider tree
 
-Gates: lint 0 errors | build exit 0 (16 routes, /emergency new) | 165/165 tests (+14)
+app/planner/page.tsx (FIXED — 2 pre-existing a11y warnings eliminated)
+- Added role="combobox" to origin-input and dest-input
+- combobox role supports aria-expanded — resolves jsx-a11y/role-supports-aria-props
+
+Gates: lint 0 errors 0 warnings | build exit 0 (16 routes) | 165/165 tests pass
