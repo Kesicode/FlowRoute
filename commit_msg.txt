@@ -1,80 +1,56 @@
-feat: Phase 5 - PWA, Offline-First Shell & Install Prompt
+feat: Phase 6 - Live Gemini AI Copilot, Trip Export & Chat API
 
-app/manifest.ts (NEW)
-- Next.js native App Router manifest — auto-served at /manifest.webmanifest
-- name: "FlowRoute — AI Travel Planner", short_name: "FlowRoute"
-- theme_color: #00f2fe, background_color: #0a0a0f, display: standalone
-- App shortcuts: Plan a Trip (/planner), My Journey (/journey), Explore (/explore), SOS (/emergency)
-- SVG icons: 192px + 512px (maskable)
+app/api/ai/chat/route.ts (NEW)
+- Streaming Gemini chat API — POST /api/ai/chat → SSE text/event-stream
+- Uses @google/generative-ai v0.24: model.startChat({history}) + sendMessageStream()
+- Model: gemini-1.5-flash, maxOutputTokens: 400, temperature: 0.7
+- Trip-context-aware system prompt injected server-side (never exposed to client)
+- System prompt: FlowRoute Copilot persona, India travel expertise, EN/HI/ML language detection
+- History: up to 20 messages (context cap), all roles sanitized
+- sanitize(): strips backticks, backslashes, non-printable chars except Devanagari + Malayalam Unicode
+- Rate limit: 1 req/4s per IP (separate limit from /api/ai/plan)
+- Graceful no-key fallback: streams helpful static message instead of 500
+- SSE format: data: <chunk>\n\n ... data: [DONE]\n\n
+- Headers: X-Accel-Buffering:no (disables nginx buffering for true streaming)
 
-public/sw.js (NEW)
-- Full service worker with tiered caching strategies:
-  · Static assets (JS/CSS/fonts/SVG/PNG) → cache-first, served instantly offline
-  · Navigation HTML pages → network-first, offline fallback to /offline page
-  · /api/* routes → network-first, returns JSON {error:"offline"} on failure
-  · Everything else → network-first with cache fallback
-- Install: precaches shell URLs (/, /offline, /planner, /journey, /explore, /manifest.webmanifest, icons)
-- Activate: purges stale caches from previous versions
-- Push notification handler: showNotification with icon, vibrate, tag
-- Notification click: focuses existing window or opens new tab
+components/journey/ai-copilot-panel.tsx (NEW)
+- Full multi-turn streaming chat UI with trip context awareness
+- SSE streaming: ReadableStream reader, token-by-token accumulation + live render
+- Typing cursor: inline w-0.5 h-3.5 bg-brand-cyan animate-pulse after last char
+- Quick prompt chips: 5 EN / 3 HI / 3 ML language-aware suggestions
+- Copy-to-clipboard on any model message (hover to reveal, green tick for 2s)
+- Clear chat button: aborts in-flight request + resets message history
+- Error states: AbortError ignored, network errors shown inline in bubble
+- Auto-scroll to bottom on new messages (smooth)
+- Auto-resize textarea (fieldSizing:content CSS), Enter to send, Shift+Enter newline
+- Opening greeting: uses tripData.from/to if available, else generic welcome
+- Disclaimer: "AI responses may contain errors" footer
 
-public/icons/icon-192.svg (NEW) — cyan route-line icon, dark bg, maskable
-public/icons/icon-512.svg (NEW) — high-res version with glow effects
+app/journey/page.tsx (MODIFIED)
+- Swapped AiSuggestionsPanel import for AiCopilotPanel
+- ai tab now renders <AiCopilotPanel /> (always shown, no aiPlan dependency)
+- Added TripExportBar import and wired below quick-stats in header sticky bar
 
-app/offline/page.tsx (NEW)
-- Offline fallback page served by SW when navigation fails
-- Live online/offline detection via window events
-- Shows "Back Online!" state with green checkmark badge when reconnected
-- Lists what still works offline: saved trips, itinerary, voice commands
-- Actions: Try Again (reload) / View Saved Trips
-- Framer Motion slide-in animation
+hooks/useTripExport.ts (NEW)
+- exportTripJSON(): downloads {_version:1, _app:"FlowRoute", _exportedAt, trip} as .json
+- exportAllTripsJSON(): downloads all savedTrips from Zustand as .json
+- copyShareURL(): builds /journey?from=...&to=...&budget=...&travellers=...&date=... URL, copies to clipboard, shows "Copied!" for 2.5s
+- shareNative(): calls navigator.share() on mobile PWA with title + text + URL
+- importTripJSON(): file picker → JSON parse → initTrip() + saveCurrentTrip() rehydration
+- canShare: true when navigator.share is available
+- Full loading/error state per action
 
-hooks/usePWA.ts (NEW)
-- PWA state detection + SW registration hook
-- isStandalone: display-mode:standalone media query + navigator.standalone (iOS)
-- isOnline: live online/offline event listener
-- swRegistered: registers /sw.js with {updateViaCache:"none"}
-- updateAvailable: watches for SW waiting state (new version ready)
-- canInstall: captures beforeinstallprompt event (Android/Chrome)
-- isIOS: /iPad|iPhone|iPod/ UA detection
-- triggerInstall(): calls deferred prompt.prompt() + awaits userChoice
-- dismissInstall(): clears deferred prompt for session
+components/ui/TripExportBar.tsx (NEW)
+- Compact toolbar: [↓ Export] [↑ Import] [🔗 Copy Link / ⬆ Share]
+- Adapts to native Web Share API (mobile) vs clipboard (desktop)
+- Hidden entirely when no active trip (hasTrip false)
+- Loader spinners during async operations, green "Copied!" on success
 
-hooks/usePWA.test.ts (NEW) — 16 unit tests
-- isIOSDevice: iPhone, iPad, iPod, Android (negative), desktop (negative)
-- isStandaloneMode: media query, navigator.standalone, neither
-- shouldShowInstallPrompt: all 5 states
-- SW cache strategy routing: API=network-first, static=cache-first, nav=network-first
+app/api/ai/chat/chat.test.ts (NEW) — 19 unit tests
+- sanitize(): backtick removal, backslash removal, Hindi/Malayalam preservation,
+  500-char truncation, newline/tab preservation
+- parseSSEChunk(): single line, stops at [DONE], multiple lines, ignores non-data
+- buildTripContext(): null trip, full context, partial fields, INR default currency
+- isRateLimited(): within window, after window, boundary cases
 
-components/ui/OfflineBanner.tsx (NEW)
-- Fixed banner below navbar (top-[72px]), z-50
-- Amber: "You're offline — showing cached data only" with pulsing WifiOff icon
-- Green: "Back online — live data restored" shown for 2.5s on reconnect
-- AnimatePresence + spring animation, role="status" aria-live="polite"
-- SSR-safe: hasMounted guard prevents hydration mismatch
-
-components/ui/InstallPrompt.tsx (NEW)
-- Slides up from bottom after 3s delay (doesn't interrupt initial UX)
-- sessionStorage dismiss: won't re-show after user taps "Not now"
-- Android/Chrome: "Install" button triggers native beforeinstallprompt flow
-- iOS: shows "Tap Share → Add to Home Screen" manual instructions
-- Hidden entirely when already in standalone (installed) mode
-- Framer Motion spring slide-up, role="dialog" aria-label
-
-app/layout.tsx (MODIFIED)
-- Added Viewport export: themeColor array (dark=#00f2fe, light=#00b4d8)
-- Added viewportFit:"cover" for iPhone notch support
-- manifest metadata: "/manifest.webmanifest"
-- appleWebApp: capable:true, statusBarStyle:"black-translucent"
-- Wired <OfflineBanner /> between StoreHydration and Navbar
-- Wired <InstallPrompt /> before closing </SettingsProvider>
-
-next.config.ts (MODIFIED)
-- Added async headers() with security + SW-specific headers:
-  · Global: X-Content-Type-Options:nosniff, X-Frame-Options:DENY,
-            Referrer-Policy:strict-origin-when-cross-origin, X-XSS-Protection
-  · /sw.js: Content-Type:application/javascript, Cache-Control:no-store,
-             Service-Worker-Allowed:/
-  · /manifest.webmanifest: Content-Type:application/manifest+json, max-age:3600
-
-Gates: lint 0 errors | build exit 0 (14 routes) | test 132/132 pass (+16 new)
+Gates: lint 0 errors | build exit 0 (15 routes, /api/ai/chat new) | 151/151 tests (+19)

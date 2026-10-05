@@ -46,7 +46,8 @@ import { EssentialsPanel } from "@/components/journey/essentials-panel";
 import { AttractionsPanel } from "@/components/journey/attractions-panel";
 import { BudgetPanel } from "@/components/journey/budget-panel";
 import { CarbonPanel } from "@/components/journey/carbon-panel";
-import { AiSuggestionsPanel } from "@/components/journey/ai-suggestions-panel";
+import { AiCopilotPanel } from "@/components/journey/ai-copilot-panel";
+
 import { ItineraryPanel } from "@/components/journey/itinerary-panel";
 import { ExplainabilityPanel } from "@/components/journey/explainability-panel";
 import { TicketBooking } from "@/components/ticket-booking";
@@ -62,6 +63,8 @@ import { WhatIfPanel } from "@/components/ui/WhatIfPanel";
 import { DeviationBanner } from "@/components/ui/DeviationBanner";
 // Phase 4 — Voice Copilot
 import { VoiceCopilot } from "@/components/ui/VoiceCopilot";
+// Phase 6 — Trip Export
+import { TripExportBar } from "@/components/ui/TripExportBar";
 
 import {
   useTripActions,
@@ -598,7 +601,8 @@ function JourneyContent() {
       </div>
     ),
     carbon: carbon ? <CarbonPanel carbon={carbon} /> : null,
-    ai: aiPlan ? <AiSuggestionsPanel aiSuggestions={aiPlan.aiSuggestions} /> : null,
+    ai: <AiCopilotPanel />,
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [routes, weather, foodStops, essentials, attractions, budgetBreakdown, carbon, aiPlan,
        selectedRouteId, handleRouteSelect, handleRouteHover, origin, destination,
@@ -709,9 +713,15 @@ function JourneyContent() {
                 </div>
               ))}
             </div>
+
+            {/* Phase 6 — Export / Share bar */}
+            <div className="mt-2.5">
+              <TripExportBar />
+            </div>
           </div>
 
           {/* Offline notice */}
+
           {isOfflineMode && (
             <div className="px-4 py-2 bg-amber-500/15 border-b border-amber-500/20 text-[10px] text-amber-400 font-bold flex gap-1.5 items-center shrink-0">
               <WifiOff className="w-3.5 h-3.5 animate-pulse" />
