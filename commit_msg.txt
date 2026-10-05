@@ -1,54 +1,14 @@
-feat: Phase 8 - Explore MapLibre Engine, Trip Hydration, PWA Update Toast & A11y Fix
+fix: Zustand infinite loop - wrap all object selectors with useShallow
 
-components/map/ExploreMapInner.tsx (NEW)
-- Full MapLibre GL JS map for the Explore page (GPU-accelerated WebGL)
-- OSM raster tiles — no API key required
-- GPS position: pulsing cyan dot (CSS @keyframes injected once)
-- Discovery radius: GeoJSON Polygon drawn as dashed cyan circle overlay
-  (makeCircleGeoJSON with 64-point approximation; updates via setData on GeoJSONSource)
-- POI markers: emoji HTML elements per category (🍽️ food, 🎯 attraction, 🏥 hospital etc.)
-  hover scale 1.2x, Popup with name + category + "Add to Trip" button
-- "Add to Trip" dispatches flowroute:add-poi CustomEvent (popup runs in MapLibre DOM context)
-- Separate useEffects for map init (runs once), center/radius (fly + dot + circle), POIs (markers)
-- Full cleanup on unmount: map.remove()
+Root cause: every useFlowStore((s) => ({...})) returned a new object reference
+on each render, causing Zustand to see prev !== next, schedule another render,
+and repeat indefinitely — manifesting as "getServerSnapshot should be cached"
+and "Maximum update depth exceeded" errors in Navbar → useSettingsActions.
 
-app/explore/page.tsx (UPGRADED — replaces Leaflet placeholder)
-- Dynamic import of ExploreMapInner (ssr:false) with skeleton loading fallback
-- GPS watch via navigator.geolocation.watchPosition (only when consent is granted)
-- Overpass POI fetch triggered on gpsCenter + discovery radius change (30min TTL cache)
-  Uses AbortController to cancel in-flight fetches on rapid mode changes
-- Discovery Mode segmented selector: Off / Low(500m) / Balanced(1.5km) / Active(3km) / Adventure(8km)
-  Labels trilingual EN/HI/ML
-- Category filter chips: Food / Sights / Essentials — toggle active set (Set<POICategory>)
-  Shows live POI count per category from Overpass results
-- CollapsiblePanel (AnimatePresence height animation) with GPS status indicator
-- "No trip active" hint card when mode is not off and no trip in store
-- "Added to trip" emerald success toast (2.5s auto-dismiss) on flowroute:add-poi event
-- Appends visit:${name} to trip preferences array via updateTripField
+Fix: imported useShallow from zustand/react/shallow and wrapped all 9 object-
+returning selectors in useTripStore.ts:
+  useTripActions, useJourneyActions, useBudgetState, useBudgetActions,
+  useSettingsActions, useUserProfile, useUIActions, useTripsListActions
 
-app/trips/page.tsx (UPGRADED)
-- handleOpenTrip(trip) now calls initTrip() with the saved trip's full intent
-  before router.push('/journey'), so Journey page receives a fully hydrated store
-- Fields mapped: from, to, departureDate, returnDate, travellers, budget, currency
-- Previous version did router.push('/journey') with null store (regression fixed)
-
-app/trips/[id]/page.tsx (UPGRADED)
-- Resume Trip button now calls initTrip() with the same hydration mapping
-  before navigating, matching the trips list behavior
-
-components/ui/PWAUpdateToast.tsx (NEW)
-- Listens to usePWA().updateAvailable via useEffect
-- Slide-up toast: "New version available" + "Reload" + dismiss X
-- Reload flow: getRegistration → post SKIP_WAITING → wait for controllerchange event
-  → window.location.reload() (avoids blank page flash)
-- Dismissable without reload (sessionOnly — no localStorage)
-- role=alert, aria-live=polite for screen readers
-
-app/layout.tsx (MODIFIED)
-- Added PWAUpdateToast import + rendered after InstallPrompt in SettingsProvider tree
-
-app/planner/page.tsx (FIXED — 2 pre-existing a11y warnings eliminated)
-- Added role="combobox" to origin-input and dest-input
-- combobox role supports aria-expanded — resolves jsx-a11y/role-supports-aria-props
-
-Gates: lint 0 errors 0 warnings | build exit 0 (16 routes) | 165/165 tests pass
+Primitive selectors (string, boolean, number, null, array ref) are unchanged —
+they compare by value and don't trigger the loop.
