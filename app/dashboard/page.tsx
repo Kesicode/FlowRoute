@@ -37,6 +37,22 @@ import {
 import type { TransportMode, RecentJourney } from "@/types/journey";
 import { useSettings } from "@/lib/settings-context";
 import { t } from "@/services/translations";
+// Phase 7 — real Zustand data for dashboard
+import {
+  useTripData,
+  useSavedTrips,
+  useLanguage as useStoreLanguage,
+  useBudgetState,
+  useDeviationDetected,
+} from "@/hooks/useTripStore";
+import {
+  Plane,
+  Bookmark,
+  IndianRupee,
+  ShieldAlert,
+} from "lucide-react";
+
+
 
 const modeIcon: Record<TransportMode, React.ElementType> = {
   walk: Route,
@@ -72,6 +88,14 @@ export default function DashboardPage() {
   const { language } = useSettings();
   const [history, setHistory] = useState<RecentJourney[]>([]);
   const [stats, setStats] = useState(mockTravelStats);
+
+  // Phase 7 — real store data
+  const tripData = useTripData();
+  const savedTrips = useSavedTrips();
+  const budgetData = useBudgetState();
+  const deviationDetected = useDeviationDetected();
+  const storeLang = useStoreLanguage();
+  const activeLang = storeLang || language;
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -144,8 +168,108 @@ export default function DashboardPage() {
           </Link>
         </motion.div>
 
+        {/* Phase 7 — Live Zustand panels: Active Trip + Saved Trips */}
+        {(tripData || savedTrips.length > 0 || deviationDetected) && (
+          <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {/* Active Trip Card */}
+            {tripData && (
+              <Link
+                href="/journey"
+                className="card rounded-2xl border border-brand-cyan/20 bg-brand-cyan/5 hover:border-brand-cyan/40 transition-all p-4 flex items-start gap-3 group"
+              >
+                <div className="p-2.5 rounded-xl bg-brand-cyan/15 border border-brand-cyan/20 shrink-0">
+                  <Plane className="w-5 h-5 text-brand-cyan" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-brand-cyan font-bold uppercase tracking-wider">
+                    {activeLang === "hi" ? "सक्रिय यात्रा" : activeLang === "ml" ? "സജീവ യാത്ര" : "Active Trip"}
+                  </p>
+                  <p className="text-sm font-bold text-white mt-0.5 truncate">
+                    {tripData.from} → {tripData.to}
+                  </p>
+                  {tripData.budget && (
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {tripData.currency ?? "₹"} {tripData.budget.toLocaleString("en-IN")}
+                      {tripData.travellers && tripData.travellers > 1 ? ` · ${tripData.travellers} travellers` : ""}
+                    </p>
+                  )}
+                  <span className="inline-flex items-center gap-1 text-[10px] text-brand-cyan mt-1.5 group-hover:underline">
+                    View Journey →
+                  </span>
+                </div>
+              </Link>
+            )}
+
+            {/* Saved Trips count */}
+            {savedTrips.length > 0 && (
+              <Link
+                href="/trips"
+                className="card rounded-2xl border border-white/8 hover:border-white/15 transition-all p-4 flex items-start gap-3 group"
+              >
+                <div className="p-2.5 rounded-xl bg-white/8 border border-white/10 shrink-0">
+                  <Bookmark className="w-5 h-5 text-slate-300" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                    {activeLang === "hi" ? "सहेजी गई यात्राएं" : activeLang === "ml" ? "സംരക്ഷിച്ച യാത്രകൾ" : "Saved Trips"}
+                  </p>
+                  <p className="text-2xl font-black text-white mt-0.5">{savedTrips.length}</p>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 mt-1 group-hover:text-slate-200">
+                    View all →
+                  </span>
+                </div>
+              </Link>
+            )}
+
+            {/* Budget status (if allocation exists) */}
+            {budgetData.allocation && (
+              <div className="card rounded-2xl border border-white/8 p-4 flex items-start gap-3">
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+                  <IndianRupee className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Budget Used</p>
+                  <p className="text-sm font-bold text-white mt-0.5">
+                    {budgetData.allocation.transport.currency}{" "}
+                    {budgetData.committedAmount.toLocaleString("en-IN")}
+                    <span className="text-slate-500 font-normal text-xs">
+                      {" "}/ {(budgetData.allocation.transport.amount + budgetData.allocation.accommodation.amount + budgetData.allocation.food.amount + budgetData.allocation.activities.amount + budgetData.allocation.reserve.amount).toLocaleString("en-IN")}
+                    </span>
+                  </p>
+                  <div className="h-1 bg-white/10 rounded-full mt-2 overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-400 rounded-full"
+                      style={{
+                        width: `${Math.min(100, (budgetData.committedAmount / (budgetData.allocation.transport.amount + budgetData.allocation.accommodation.amount + budgetData.allocation.food.amount + budgetData.allocation.activities.amount + budgetData.allocation.reserve.amount)) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Deviation alert */}
+            {deviationDetected && (
+              <Link
+                href="/journey"
+                className="card rounded-2xl border border-amber-500/30 bg-amber-500/8 p-4 flex items-start gap-3 col-span-full sm:col-span-1"
+              >
+                <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/20 shrink-0">
+                  <ShieldAlert className="w-5 h-5 text-amber-400 animate-pulse" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Route Deviation</p>
+                  <p className="text-sm font-bold text-white mt-0.5">Off your planned route</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Tap to recalculate</p>
+                </div>
+              </Link>
+            )}
+          </motion.div>
+        )}
+
         {/* Dynamic Aggregated Stats Grid */}
         <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+
           {stats.map((stat) => {
             // Localize labels dynamically
             const labelKeys: Record<string, string> = {

@@ -1,56 +1,56 @@
-feat: Phase 6 - Live Gemini AI Copilot, Trip Export & Chat API
+feat: Phase 7 - Emergency SOS Page, Live Deviation Loop & Dashboard Real Data
 
-app/api/ai/chat/route.ts (NEW)
-- Streaming Gemini chat API — POST /api/ai/chat → SSE text/event-stream
-- Uses @google/generative-ai v0.24: model.startChat({history}) + sendMessageStream()
-- Model: gemini-1.5-flash, maxOutputTokens: 400, temperature: 0.7
-- Trip-context-aware system prompt injected server-side (never exposed to client)
-- System prompt: FlowRoute Copilot persona, India travel expertise, EN/HI/ML language detection
-- History: up to 20 messages (context cap), all roles sanitized
-- sanitize(): strips backticks, backslashes, non-printable chars except Devanagari + Malayalam Unicode
-- Rate limit: 1 req/4s per IP (separate limit from /api/ai/plan)
-- Graceful no-key fallback: streams helpful static message instead of 500
-- SSE format: data: <chunk>\n\n ... data: [DONE]\n\n
-- Headers: X-Accel-Buffering:no (disables nginx buffering for true streaming)
+app/emergency/page.tsx (NEW)
+- Full SOS hub page — offline-capable, no API calls needed
+- 112 call button: two-tap confirm flow (first tap shows "Tap again to confirm",
+  4s auto-dismiss, second tap fires tel:112). Pulsing red ring animation via Framer Motion.
+- Quick-call grid: Police 100, Ambulance 108, Fire 101, Women's Helpline 1091, Tourist Police 1363
+  Each is a <a href="tel:N"> link styled by service color
+- Safety mode toggle: auto-enables when page is visited; real-time toggle via useSettingsActions
+- Emergency Overlay toggle: red ShieldAlert pulsing badge when active
+- Nearby services grid: 4 Google Maps search links (hospital, police, pharmacy, ATM)
+  Opens in new tab; labeled "requires internet"
+- Emergency checklist: collapsible accordion (ChevronDown/Up), EN/HI/ML, 5 items
+- User profile card: shows displayName + avatarEmoji from Zustand userProfile if set
+- Footer disclaimer: "not a replacement for official emergency services"
+- All text trilingual (EN/HI/ML) based on useLanguage() from store
 
-components/journey/ai-copilot-panel.tsx (NEW)
-- Full multi-turn streaming chat UI with trip context awareness
-- SSE streaming: ReadableStream reader, token-by-token accumulation + live render
-- Typing cursor: inline w-0.5 h-3.5 bg-brand-cyan animate-pulse after last char
-- Quick prompt chips: 5 EN / 3 HI / 3 ML language-aware suggestions
-- Copy-to-clipboard on any model message (hover to reveal, green tick for 2s)
-- Clear chat button: aborts in-flight request + resets message history
-- Error states: AbortError ignored, network errors shown inline in bubble
-- Auto-scroll to bottom on new messages (smooth)
-- Auto-resize textarea (fieldSizing:content CSS), Enter to send, Shift+Enter newline
-- Opening greeting: uses tripData.from/to if available, else generic welcome
-- Disclaimer: "AI responses may contain errors" footer
+hooks/useDeviationLoop.ts (NEW)
+- 30s setInterval polling loop (POLL_INTERVAL_MS = 30_000)
+- Reads liveCoords + routeGeometry from Zustand (no duplicate GPS watch)
+- detectDeviation(current, geometry, 300m threshold) from journey-engine
+- State machine: consecutiveOnRoute counter, ttsAlertFired flag
+- TTS fires ONCE per deviation event via options.tts callback (not every poll)
+- Auto-clears deviation after CLEAR_AFTER_N=2 consecutive on-route checks
+- Cleans up interval on unmount
+- Returns { deviationDetected, isRunning }
 
 app/journey/page.tsx (MODIFIED)
-- Swapped AiSuggestionsPanel import for AiCopilotPanel
-- ai tab now renders <AiCopilotPanel /> (always shown, no aiPlan dependency)
-- Added TripExportBar import and wired below quick-stats in header sticky bar
+- Imported useDeviationLoop
+- Wired with CustomEvent TTS dispatcher (flowroute:tts-speak)
+  → avoids duplicate useVoice() hook call; voice hook listens to this event
+- useDeviationLoop(routeGeometry, { tts: speakFn }) called after consent section
 
-hooks/useTripExport.ts (NEW)
-- exportTripJSON(): downloads {_version:1, _app:"FlowRoute", _exportedAt, trip} as .json
-- exportAllTripsJSON(): downloads all savedTrips from Zustand as .json
-- copyShareURL(): builds /journey?from=...&to=...&budget=...&travellers=...&date=... URL, copies to clipboard, shows "Copied!" for 2.5s
-- shareNative(): calls navigator.share() on mobile PWA with title + text + URL
-- importTripJSON(): file picker → JSON parse → initTrip() + saveCurrentTrip() rehydration
-- canShare: true when navigator.share is available
-- Full loading/error state per action
+app/dashboard/page.tsx (MODIFIED)
+- Added imports: useTripData, useSavedTrips, useLanguage, useBudgetState,
+  useDeviationDetected from hooks/useTripStore
+- New live Zustand panels section (shown when any real data exists):
+  · Active Trip Card — cyan border, Plane icon, from→to + budget + travellers,
+    Link to /journey
+  · Saved Trips count — shows count with Bookmark icon, Link to /trips
+  · Budget Used — emerald progress bar (committedAmount/totalAllocation)
+  · Deviation Alert — amber pulsing ShieldAlert, Link to /journey for recalculate
+- All panels conditionally rendered (hidden when store is empty)
+- Panels appear above existing mock stats grid, preserving all charts
 
-components/ui/TripExportBar.tsx (NEW)
-- Compact toolbar: [↓ Export] [↑ Import] [🔗 Copy Link / ⬆ Share]
-- Adapts to native Web Share API (mobile) vs clipboard (desktop)
-- Hidden entirely when no active trip (hasTrip false)
-- Loader spinners during async operations, green "Copied!" on success
+components/navbar.tsx (MODIFIED)
+- Added SOS nav link (last item): ShieldAlert icon, /emergency href
+  EN: "SOS" / HI: "आपातकाल" / ML: "SOS"
 
-app/api/ai/chat/chat.test.ts (NEW) — 19 unit tests
-- sanitize(): backtick removal, backslash removal, Hindi/Malayalam preservation,
-  500-char truncation, newline/tab preservation
-- parseSSEChunk(): single line, stops at [DONE], multiple lines, ignores non-data
-- buildTripContext(): null trip, full context, partial fields, INR default currency
-- isRateLimited(): within window, after window, boundary cases
+hooks/useDeviationLoop.test.ts (NEW) — 17 unit tests
+- processCheck() state machine: first alert fires, no duplicate alert, counter increment,
+  clears after N, resets on re-deviation, no-op when not deviated, clearAfterN=3 case
+- getDeviationAlert(): EN/HI/ML/unknown language
+- Loop constants: POLL_INTERVAL_MS, DEVIATION_THRESHOLD_M, CLEAR_AFTER_N
 
-Gates: lint 0 errors | build exit 0 (15 routes, /api/ai/chat new) | 151/151 tests (+19)
+Gates: lint 0 errors | build exit 0 (16 routes, /emergency new) | 165/165 tests (+14)

@@ -65,6 +65,9 @@ import { DeviationBanner } from "@/components/ui/DeviationBanner";
 import { VoiceCopilot } from "@/components/ui/VoiceCopilot";
 // Phase 6 — Trip Export
 import { TripExportBar } from "@/components/ui/TripExportBar";
+// Phase 7 — Deviation loop with TTS
+import { useDeviationLoop } from "@/hooks/useDeviationLoop";
+
 
 import {
   useTripActions,
@@ -241,6 +244,26 @@ function JourneyContent() {
     }
   }, [loading, geolocationConsent]);
 
+  // ── Phase 7: Deviation TTS alert loop (30s) ───────────────────────────────
+  // routeGeometry is populated after OSRM fetch — hook is a no-op until then
+  const { speak: speakFn } = (() => {
+    // Lazily import speak from useVoice — safe because useVoice is always mounted
+    // We access via a global CustomEvent so we don't need to call useVoice again here
+    return {
+      speak: (text: string) => {
+        if (typeof window === "undefined") return;
+        window.dispatchEvent(new CustomEvent("flowroute:tts-speak", { detail: { text } }));
+      },
+    };
+  })();
+
+  useDeviationLoop(routeGeometry, {
+    tts: speakFn,
+    onDeviation: () => {
+      // Health badge already updated by watchPosition; deviation banner
+      // is rendered via deviationDetected from store
+    },
+  });
 
   // Dynamic state loaded from real APIs
 

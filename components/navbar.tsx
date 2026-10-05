@@ -75,7 +75,9 @@ export default function Navbar() {
     { name: language === "en" ? "Dashboard" : language === "hi" ? "डैशबोर्ड" : "ഡാഷ്‌ബോർഡ്", href: "/dashboard", icon: LayoutDashboard },
     { name: language === "en" ? "Trips" : language === "hi" ? "यात्राएं" : "യാത്രകൾ", href: "/trips", icon: Folder },
     { name: language === "en" ? "Profile" : language === "hi" ? "प्रोफ़ाइल" : "പ്രൊഫൈൽ", href: "/profile", icon: User, emoji: userProfile.avatarEmoji },
+    { name: language === "en" ? "SOS" : language === "hi" ? "आपातकाल" : "SOS", href: "/emergency", icon: ShieldAlert },
   ];
+
 
 
 
