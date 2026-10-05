@@ -135,7 +135,17 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
+// ── Message: handle SKIP_WAITING from PWAUpdateToast ─────────────────────────
+// Called when the user clicks "Reload" in the update notification.
+// Forces the waiting SW to become active immediately.
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 // ── Push Notifications ─────────────────────────────────────────────────────────
+
 self.addEventListener("push", (event) => {
   if (!event.data) return;
   let data;

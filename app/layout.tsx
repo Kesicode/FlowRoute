@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { cookies } from "next/headers";
 import "./globals.css";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
@@ -11,7 +10,6 @@ import { OfflineBanner } from "@/components/ui/OfflineBanner";
 import { InstallPrompt } from "@/components/ui/InstallPrompt";
 // Phase 8 — PWA update notification
 import { PWAUpdateToast } from "@/components/ui/PWAUpdateToast";
-
 
 export const metadata: Metadata = {
   title: "FlowRoute | AI-Powered Mobility Operating System",
@@ -46,17 +44,14 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const lang = cookieStore.get("flowroute_lang")?.value ?? "en";
-  const validLang = ["en", "hi", "ml"].includes(lang) ? lang : "en";
   return (
-    <html lang={validLang} className="dark h-full">
+    // Language is set client-side by Zustand — default to "en" for SSR
+    <html lang="en" className="dark h-full">
       <body className="min-h-screen bg-background text-foreground antialiased flex flex-col font-sans overflow-x-hidden selection:bg-primary/20 selection:text-primary">
         <SettingsProvider>
           <StoreHydration />
@@ -72,11 +67,7 @@ export default async function RootLayout({
           {/* Phase 8 — SW update available notification */}
           <PWAUpdateToast />
         </SettingsProvider>
-
-
       </body>
     </html>
   );
 }
-
-

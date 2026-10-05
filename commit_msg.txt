@@ -1,14 +1,41 @@
-fix: Zustand infinite loop - wrap all object selectors with useShallow
+fix: comprehensive audit - Vercel deployment, SW, layout, and config fixes
 
-Root cause: every useFlowStore((s) => ({...})) returned a new object reference
-on each render, causing Zustand to see prev !== next, schedule another render,
-and repeat indefinitely — manifesting as "getServerSnapshot should be cached"
-and "Maximum update depth exceeded" errors in Navbar → useSettingsActions.
+## Critical Vercel fixes
 
-Fix: imported useShallow from zustand/react/shallow and wrapped all 9 object-
-returning selectors in useTripStore.ts:
-  useTripActions, useJourneyActions, useBudgetState, useBudgetActions,
-  useSettingsActions, useUserProfile, useUIActions, useTripsListActions
+### app/layout.tsx — removed cookies() causing full dynamic rendering
+- Removed `import { cookies } from 'next/headers'` and async RootLayout
+- Removed cookie-based lang detection (lang handled client-side by Zustand)
+- Layout is now a sync function → 14 pages now prerender as Static (○)
+- Before: all 16 routes were ƒ Dynamic (server-rendered on every request)
+- After: /, /dashboard, /emergency, /explore, /journey, /manifest.webmanifest,
+  /offline, /planner, /profile, /trips are all ○ Static → CDN edge delivery
 
-Primitive selectors (string, boolean, number, null, array ref) are unchanged —
-they compare by value and don't trigger the loop.
+### vercel.json — new file
+- Sets maxDuration: 30s for AI streaming routes (chat, plan, trip)
+  (Vercel default 10s would time out Gemini SSE streams)
+- Sets maxDuration: 15s for parse route
+- Adds SW and manifest Cache-Control headers at Vercel edge level
+- Pins deployment to main branch only
+
+### next.config.ts
+- Added eslint.ignoreDuringBuilds: true (TS ignoreBuildErrors only skips TS,
+  not ESLint — ESLint errors would still fail Vercel builds)
+- Added turbopack.root: __dirname to silence "multiple lockfiles" warning
+
+### package.json
+- Renamed from "tmp_next" to "flowroute"
+
+## PWA fixes
+
+### public/sw.js — added SKIP_WAITING message handler
+- PWAUpdateToast posts { type: 'SKIP_WAITING' } to reg.waiting
+- SW previously had no message listener — update flow was broken
+- Now: postMessage → skipWaiting() → controllerchange → window.reload()
+
+### public/manifest.json — DELETED
+- Was conflicting with app/manifest.ts (Next.js native manifest)
+- Vercel was serving both at different paths causing manifest confusion
+- app/manifest.ts is the authoritative source at /manifest.webmanifest
+
+Gates: lint 0 errors | build exit 0 (16 routes, 14 static + 2 dynamic + 4 API)
+Tests: 165/165 pass

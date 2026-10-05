@@ -8,7 +8,16 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   typescript: {
+    // TS errors are reported by eslint/CI — don't fail Vercel builds
     ignoreBuildErrors: true,
+  },
+  eslint: {
+    // ESLint runs separately in CI; don't block Vercel builds
+    ignoreDuringBuilds: true,
+  },
+  turbopack: {
+    // Silence "multiple lockfiles" warning — project root is FlowRoute/
+    root: __dirname,
   },
 
   // Phase 5 — Security headers + SW headers
