@@ -60,6 +60,9 @@ import { WhatNextPanel } from "@/components/journey/what-next-panel";
 import { GeolocationConsent } from "@/components/GeolocationConsent";
 import { WhatIfPanel } from "@/components/ui/WhatIfPanel";
 import { DeviationBanner } from "@/components/ui/DeviationBanner";
+// Phase 4 — Voice Copilot
+import { VoiceCopilot } from "@/components/ui/VoiceCopilot";
+
 import {
   useTripActions,
   useTripData,
@@ -69,7 +72,10 @@ import {
   useGeolocationConsent,
   useLiveCoords,
   useDeviationDetected,
+  useActiveTab,
+  useUIActions,
 } from "@/hooks/useTripStore";
+
 
 import { estimateBudget, getBudgetRisk } from "@/lib/budget-engine";
 import { detectDeviation } from "@/lib/journey-engine";
@@ -100,11 +106,16 @@ function JourneyContent() {
   const [showGeoConsent, setShowGeoConsent] = useState(false);
   const [multiDayPlan, setMultiDayPlan] = useState<TripDay[]>([]);
 
-  const [activeTab, setActiveTab] = useState("route");
+  // Phase 4: activeTab now lives in the Zustand store so voice commands can
+  // switch tabs directly via useVoiceCommands without prop threading.
+  const activeTab = useActiveTab();
+  const { setActiveTab } = useUIActions();
+
   const [loading, setLoading] = useState(true);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"routes" | "map">("routes");
+
 
   // URL params — may come from old bookmarks or planner redirect
   const from = tripData?.from || searchParams.get("from") || "Kochi Airport";
@@ -791,9 +802,15 @@ function JourneyContent() {
 
 
       </div>
+
+      {/* ── Phase 4: Voice Copilot FAB ───────────────────────────────────────── */}
+      {/* Floating bottom-right. Hidden on mobile map view to avoid overlap. */}
+      <VoiceCopilot position="bottom-right" maxHistory={5} />
+
     </>
   );
 }
+
 
 export default function JourneyPage() {
   return (

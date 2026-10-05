@@ -1,0 +1,66 @@
+feat: Phase 4 - Voice Agentic Action Dispatcher & Live Copilot
+
+services/voice-dispatcher.ts (NEW)
+- Pure regex + keyword intent parser — no LLM, no network, instant offline-capable
+- 9 intent categories: navigation, budget, route, map, safety, settings, trip, speak, unknown
+- Number extraction happens on raw text BEFORE normalize() to preserve "1.5 lakh" decimals
+- extractNumberFromRaw() supports: plain digits, "2.5 lakh" (→250000), "15 thousand" (→15000)
+- Priority chain: SOS → disable safety → enable safety → route → map → budget sim →
+  settings → trip → speak → navigation (nav-verb only) → short fallback → unknown
+- disable safety checked BEFORE enable safety (longer phrase wins)
+- Navigation only fires with explicit verb prefix (show/open/go to/switch to) OR ≤5 words
+- Removes bare ambiguous keywords (trip, plan) from multiday tab to prevent false matches
+- Adds hotel/hotels to accommodation tab keywords
+- Hospital regex supports plural: "nearby hospitals"
+- Supports EN, HI (Devanagari + romanized), ML keywords across all categories
+- getIntentConfirmation(): TTS-ready response string for every intent type
+
+hooks/useVoiceCommands.ts (NEW)
+- Bridges voice-dispatcher → Zustand store actions → TTS spoken feedback
+- Reads transcript from useVoice(); processes via parseVoiceIntent() in useEffect
+- lastProcessedRef prevents double-processing same transcript
+- Handles all 9 intent categories:
+  · navigation  → setActiveTab() directly on Zustand (works from any component)
+  · budget/show  → setActiveTab("budget")
+  · budget/sim   → setActiveTab("whatif")
+  · route        → setActiveTab("route") + CustomEvent "flowroute:set-route-mode"
+  · map          → CustomEvent "flowroute:map-command" + relevant tab switch
+  · safety/SOS   → setEmergencyMode(true) + setHealth("action_required")
+  · safety on/off → setSafetyMode()
+  · settings     → setLanguage / setCurrency / setTravelerProfile
+  · trip/new     → speak + router.push("/") after 800ms
+  · trip/save    → saveCurrentTrip() with full SavedTripSummary from store
+  · trip/clear   → resetTrip()
+  · speak/budget → dynamic TTS from remainingAmount + total allocation
+  · speak/status → TTS from trip from/to
+  · speak/next   → TTS from tripData.to
+  · unknown      → TTS hint suggesting valid commands
+
+components/ui/VoiceCopilot.tsx (NEW)
+- Floating FAB: bottom-right, bottom-left, or inline position prop
+- MicButton: red pulsing ring + double border animation while listening
+- Slide-up command log panel (Framer Motion AnimatePresence)
+- Each history row: category badge (color+icon) + italicized transcript + action + time
+- Category badge colors: navigation=cyan, budget=emerald, route=violet, map=sky,
+  safety=red, settings=amber, trip=indigo, speak=teal, unknown=slate
+- Panel auto-opens on every new command; "N commands" pill when collapsed
+- Clear button wipes history + resets hook state
+- Accessible: role="log", aria-live="polite", aria-pressed on mic, aria-label throughout
+
+app/journey/page.tsx (MODIFIED)
+- activeTab migrated: local useState → Zustand useActiveTab() + useUIActions()
+  Voice commands now switch tabs without prop threading
+- VoiceCopilot imported and rendered as fixed bottom-right FAB after journey layout
+
+services/voice-dispatcher.test.ts (NEW) — 32 tests
+- Safety: SOS, help me, enable, disable (correct priority order verified)
+- Route: fastest, cheapest, eco-friendly, comfortable
+- Navigation: budget, food, weather, hotels (show prefix), trip plan, hospitals
+- Budget: simulate with plain/lakh/thousand amounts (pre-normalize extraction verified)
+- Settings: language (EN/HI), currency (USD), traveler profile (solo, family)
+- Trip: new, save (save my trip), clear (clear my trip)
+- Speak: budget (how much left), next stop
+- Unknown: unrecognized phrase preserved in rawText
+- getIntentConfirmation: navigation label, SOS, unknown error message
+
+Gates: lint 0 errors | build exit 0 (13 routes) | test 116/116 pass
